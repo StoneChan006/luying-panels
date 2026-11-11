@@ -89,6 +89,7 @@ var CARDS=[
    v:{intro:'刚出厂就学会吐槽的量产机',gender:'中性',age:'25-30',featOut:['机械纹路']}}
 ];
 var DATA = window.LJ_DATA || {};
+/* ==================== 数据区结束 · 以下组件代码固定 ==================== */
 (function(){var ROOT=document.getElementById('e1');if(!ROOT)return;var bd=ROOT.querySelector('.ljBd'),ft=ROOT.querySelector('.ljFt'),hc=ROOT.querySelector('.ljHc'),ovl=ROOT.querySelector('.ljOvl'),moB=ROOT.querySelector('.ljMoB'),tst=ROOT.querySelector('.ljTst');ROOT.querySelector('.ljTt').textContent=DATA.title;
 var SVG={up:'<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6"/><path d="M6 11l6-6 6 6"/></svg>',ck:'<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',plus:'<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>'};function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function escAttr(s){return esc(s).replace(/"/g,'&quot;');}

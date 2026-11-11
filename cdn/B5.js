@@ -14,6 +14,7 @@ function typesFor(r){var w=ROLE_SW[r];if(!w)return TYPEPOOL.slice();if(w.jm)retu
 /* 字段元素写法：{s:'静态文本'} ／ {w:'键',v:'预选值(AI推理首选)',c:['候选...']}＝换选 ／ 带 n:'键' 的元素在该键值为「无」时隐藏
    bgm:1 的块＝BGM完整提示词（可编辑文本 · 不参与换选） */
 var DATA = window.LJ_DATA || {};
+/* ==================== 数据区结束 · 以下组件代码固定 ==================== */
 (function(){
 var me=document.currentScript&&document.currentScript.closest?document.currentScript.closest('.ljP'):null;
 var ROOT=me||Array.prototype.slice.call(document.querySelectorAll('.ljP')).pop();

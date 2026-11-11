@@ -37,6 +37,47 @@ var P3 = {
 };
 
 var DATA = window.LJ_DATA || {};
+
+/* 槽池展开：pool → candidates ／ groups（在 DATA 之后执行，build 注入数据不影响） */
+(function(){
+  function fill(sl){
+    if(!sl||!sl.pool)return;
+    var d=P3[sl.pool]; if(!d)return;
+    var x=d.x||[];
+    if(d.g){ sl.groups=d.g; if(d.c){ sl.candidates=d.c.concat(x); }
+      else { var c=[],i; for(i=0;i<d.g.length;i++)c=c.concat(d.g[i][1]); sl.candidates=c.concat(x); } }
+    else { sl.candidates=(d.f||[]).concat(x); }
+  }
+  function rows(rs){ (rs||[]).forEach(function(r){ (r.slots||[]).forEach(fill); }); }
+  (DATA.sections||[]).forEach(function(sec){
+    (sec.items||[]).forEach(function(it){ rows(it.rows); if(it.slots)(it.slots).forEach(fill); });
+  });
+})();
+/* ── 故事设定六段右侧：内外三态 ＋ 取景 8 大类 ──
+   内外＝分段点选（室内 → 室外 → 户外 · 不弹层 · 不改正文三行）；取景＝单列换选（8 大类 · 无二级）。
+   两者都是该段的 side 槽：随段回传 `内外=…｜取景=…`；B4 场景行的「内外」与 E3 场景卡的推荐（CATREC）都沿用它们。
+   🔴 取景只选大类（住宅区…特殊场地），具体地点由 E3 的 形式/样式/地方 展开。 */
+var SCE_POOL=['住宅区','商业店铺','乡镇街道','城市商务区','自然风光','休闲娱乐','荒野废弃','特殊场地'];
+/* 六段多值槽（钩子／伏线）＝`＋／－` 值槽：
+   数据里的 `addKey`（第二值）与 `mv:2` 统一收敛成 `mv:2`，值改存 S.pools[key] 数组（上限 2）；
+   回传 `钩子=悬念／反常识`（不再出现 `钩子＋=` 这种带加号的标签） */
+(function(){
+DATA.sections.forEach(function(sec){sec.items.forEach(function(it){
+if(it.type!=='swaprow')return;
+it.rows.forEach(function(row){row.slots.forEach(function(sl){
+if(sl.addKey||sl.mv){sl.mv=2;delete sl.addKey;}
+});});});});
+})();
+(function(){
+DATA.sections.forEach(function(sec){sec.items.forEach(function(it){
+if(it.type!=='swaprow'||it.key!=='mainline')return;
+it.rows.forEach(function(row,i){
+row.ioKey='m'+(i+1)+'i';row.catKey='m'+(i+1)+'c';
+row.slots.push({ key:row.ioKey, label:'内外', value:'室内', side:1, cyc:['室内','室外','户外'] });
+row.slots.push({ key:row.catKey, label:'取景', value:'住宅区', side:1, candidates:SCE_POOL });
+});});});
+})();
+/* ==================== 数据区结束 · 以下组件代码固定 ==================== */
 (function(){
 var me=document.currentScript&&document.currentScript.closest?document.currentScript.closest('.ljP'):null;
 var ROOT=me||Array.prototype.slice.call(document.querySelectorAll('.ljP')).pop();

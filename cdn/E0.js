@@ -10,6 +10,7 @@ var root = document.getElementById('ljRoot');
 (root || document.body).innerHTML = HTML;
 /* ==================== 数据区（每次渲染只改这里） ==================== */
 var DATA = window.LJ_DATA || {};
+/* ==================== 数据区结束 · 以下组件代码固定 ==================== */
 (function(){
 var me=document.currentScript&&document.currentScript.closest?document.currentScript.closest('.ljP'):null;
 var ROOT=me||Array.prototype.slice.call(document.querySelectorAll('.ljP')).pop();

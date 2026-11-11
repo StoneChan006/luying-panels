@@ -15,6 +15,7 @@ var root = document.getElementById('ljRoot');
    tabs 字段：{label,ed:true,v}＝可编辑 ／ {label,v,c:[…]}＝换选 ／ {label,g:'style',v,rec:[…],recw:{风格:[{sc,sum}]}}＝服装风格（单列＝AI 推荐项 → 更多 → 两栏 · rec＝AI 推理首选 · recw＝每个推荐项自己的服装套，🔴 rec 有几项 recw 就要有几项） ／ {hx:'sex'|'age'}＝形象简名三槽 ／ {im:true}＝形象高阶 ／ {tx:'intro'|'look'|'pers'|'voice'}＝四行文本 ／ {g:'style'}＋{hi:true}＋{sum:true}＝服装组；{hx}/{im} 之外的字段 label 仅在回传里出现
    bgm 字段：styleDef（音乐风格）／ vOn（整首默认·兼容旧数据）／ segs[]{k,emo,listen,iMain,iRange,iSub,iNoise,rhythm,bpm,vLine,vTimbre,vRange,vLang,vStyle,**vOn＝该段人声独立开关**} ／ trans[]（同 segs 的 k/listen/rhythm/bpm） */
 var DATA = window.LJ_DATA || {};
+/* ==================== 数据区结束 · 以下组件代码固定 ==================== */
 /* B4 BGM 池库（静态 · 唯一源）：值写进数据，池不进数据；换选／自定义均走这里。
    听感＝14 类情绪锚点（震感心灵／傲气苍穹／酷飒英气／刺激爽感／阴森恐怖／感人催泪／滑稽搞笑／古灵精怪／青春动感／都市烟火／古典雅致／旷远自然／性感撩人／异域风情；整行最多 2 词）；配器＝主色／辅色（乐器＋环境声）；节奏＝形式／过渡；
    BPM＝区间；人声＝声线／音色／音区／语言／唱法（多选）。 */

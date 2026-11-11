@@ -13,6 +13,7 @@ var root = document.getElementById('ljRoot');
                     d＝简介, g＝标签（纯文字·组件渲染时统一加 # · 必须含全部 gfx）, gfx＝[固定标签文字…]（无交互 · 取系列本该平台那一行 · 原样原序）,
                     gc＝[当期标签候选池…]（纯文字·逐个换选用·换选仅换 # 后文字 · 不含固定词）, cover＝[封面文件…] } */
 var DATA = window.LJ_DATA || {};
+/* ==================== 数据区结束 · 以下组件代码固定 ==================== */
 (function(){
 var me=document.currentScript&&document.currentScript.closest?document.currentScript.closest('.ljP'):null;
 var ROOT=me||Array.prototype.slice.call(document.querySelectorAll('.ljP')).pop();
