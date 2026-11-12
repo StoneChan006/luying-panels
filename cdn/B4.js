@@ -234,7 +234,11 @@ W2[ln.tw]={c:(ln.byRole&&ln.byRole[ln.rv])||[ln.tv],v:ln.tv,roleV:ln.rv,roleKey:
  W2[_tk]={c:['对白','画外音','内心VO','旁白','解说','VO','歌声'],v:(ln.tvType||'对白')};WOWN[_tk]=it.k;
  W2[_ak]={c:['轻淡','优雅','高能','狡猾','生活化','害羞','吞吐'],v:(ln.tvTone||'生活化')};WOWN[_ak]=it.k;
  W2[_gk]={c:['呐喊','低落','悲悯','喜乐','苦涩','愤怒','哽咽','怅然'],v:(ln.tvFeel||'低落')};WOWN[_gk]=it.k;});});});
-if(it.bgm&&it.bgm.styleDef){W2['bgmstyle']={c:(it.bgm.styleDef.c||[]).slice(),v:it.bgm.styleDef.v||'',noauto:1};WOWN['bgmstyle']=it.k;}
+if(it.bgm&&it.bgm.styleDef){var _sd=it.bgm.styleDef,_sl=[];
+  if(_sd.v)_sl.push(_sd.v);
+  (_sd.rec||[]).forEach(function(x){if(_sl.indexOf(x)<0)_sl.push(x);});
+  (_sd.c||[]).forEach(function(x){if(_sl.indexOf(x)<0)_sl.push(x);});
+  W2['bgmstyle']={c:_sl,v:_sd.v||'',noauto:1};WOWN['bgmstyle']=it.k;}
 
 });});
 var S={tx:{},pick:{},sty:{},rA:{},bA:{},bSw:{},bPk:{},bPc:{},bat:{},buf:{},ed:{},mw:{},lock:{},bgmLk:{},openB:null,undo:[]};
@@ -892,10 +896,15 @@ function bmCat(k){
 /* 音乐风格换选（BGM 专属）：单列＝AI 推荐 8 →「更多...」→ 双栏（左 8 大类 · 右该类风格）＋收起＋自定义
    选中后：各轴单列推荐换选项＝该风格所属大类的 BGM_STYREC（值不改，只换候选 · Ctrl+Z 可撤） */
 function bsPick(el){POP.type='bs';POP.el=el;POP.gi=0;drawBsOne(el);}
+/* 本期推荐＝数据 styleDef.rec（当期 B3 推理）；缺 rec 才回退引擎固定表 */
+function bsRec(){
+  var it=ITEMS['bgm']||{},st=(it.bgm&&it.bgm.styleDef)||{};
+  var r=(st.rec||[]).filter(function(v){return BGM_STYLE_FLAT.indexOf(v)>=0;});
+  return r.length?r:BGM_STYLE_REC;}
 function bsList(){
-  var cur=wval('bgmstyle'),out=[];
+  var cur=wval('bgmstyle'),out=[],R=bsRec();
   if(cur&&BGM_STYLE_FLAT.indexOf(cur)>=0)out.push(cur);
-  BGM_STYLE_REC.forEach(function(v){if(out.indexOf(v)<0&&out.length<8)out.push(v);});
+  R.forEach(function(v){if(out.indexOf(v)<0&&out.length<8)out.push(v);});
   if(out.length<5)BGM_STYLE_FLAT.forEach(function(v){if(out.indexOf(v)<0&&out.length<8)out.push(v);});
   return out;}
 function bsItem(v,cur){var q=String(v).replace(/'/g,"\\'");
@@ -907,7 +916,7 @@ function drawBsOne(el){
     +'<div><input id="bsCst" placeholder="自定义…（回车选中）" class="ljCst" onkeydown="LJ.bsCst(event)"></div></div>',false);
   stonePop(el||POP.el);}
 /* 音乐风格双列：左栏首行同 `推荐`（8 个推荐风格），其后 8 大类 */
-function bsGroups(){return [{k:'推荐',c:BGM_STYLE_REC.slice(0,8)}].concat(BGM_STYLE);}
+function bsGroups(){return [{k:'推荐',c:bsRec().slice(0,8)}].concat(BGM_STYLE);}
 function bsMore(){
   POP.gi=0;var cur=wval('bgmstyle'),G=bsGroups(),g=G[0];
   var cats=G.map(function(x,i){return '<div class="ljCat'+(i===0?' on':'')+'" onclick="LJ.bsCat('+i+')">'+esc(x.k)+'</div>';}).join('');
