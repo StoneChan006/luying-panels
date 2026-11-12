@@ -794,7 +794,7 @@ var BGM_STYLE_OVER = {
   '史诗管弦':{ iMain:['管弦铜管','大提琴'],rhythm:['渐强','延长尾音'],          bpm:['76-108','120-156'] }
 };
 /* 当前风格→该轴推荐值：单风格差异优先，否则取所属大类（含 vRange／rhythmT，覆盖过渡行） */
-function bgmCatOf(v){for(var i=0;i<BGM_STYLE.length;i++){if(BGM_STYLE[i].c.indexOf(v)>=0)return BGM_STYLE[i].k;}return '';}
+function bgmCatOf(v){for(var i=0;i<BGM_STYLE.length;i++){if(BGM_STYLE[i].c.indexOf(v)>=0||BGM_STYLE[i].k===v)return BGM_STYLE[i].k;}return '';}
 function bgmRecOf(ax){
   var st=wval('bgmstyle'),o=(BGM_STYLE_OVER[st]||{})[ax];
   if(o&&o.length)return o;
@@ -931,7 +931,9 @@ function applyStyleDemo(){
     /* 先定节奏（推荐项少、易被挤掉），听感再避开节奏已用的词（`留白` 不重复），两边都能铺满 */
     sg.rhythm=arrN('rhythm',si,'segs',sg.rhythm,null);
     sg.listen=arrN('listen',si,'segs',sg.listen,sg.rhythm);
-    sg.iMain=arrN('iMain',si,'segs',sg.iMain,null);
+    /* 主色＝身份轴，不参与段序轮换（p4「主色不轮换」）：起段取推荐首项，其余段默认「同上」整条承接；
+       要换第二色由 AI／用户手动点（如 收／转 让大提琴上台） */
+    if(si===0){sg.iMain=arrN('iMain',si,'segs',sg.iMain,null);}else{sg.iMain=['同上'];} 
     sg.iRange=one('iRange',si,'segs',sg.iRange);
     sg.iSub=arrN('iSub',si,'segs',sg.iSub,null);
     sg.iNoise=arrN('iNoise',si,'segs',sg.iNoise,null);
