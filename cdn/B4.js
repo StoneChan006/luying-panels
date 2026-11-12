@@ -292,6 +292,7 @@ if(f.g&&!g2){h+='</div><div class="ljSRow ljS2">';g2=true;}
    显示＝无角色库设定图（必须写描述）／有库图且 出图=开 且 高阶=关 且 风格在推荐内
    收起＝高阶开（描述进 E2）· 出图关（沿用设定图自带服装）· 风格不在推荐内 */
 if(f.sum){
+if(W.no)return;
 if(W.hi)return;   /* 服装高阶开＝服装串收起（与库图有无无关 · 不显示＝不回传） */
 if(H.lib){ if(W.out===false)return; if(!_showWear)return; }
 var _ls=(W.list&&W.list.length)?W.list:[{sc:'',sum:W.sum||''}];
@@ -308,9 +309,10 @@ return;}
    出图 关＝沿用设定图自带服装（服装行收起 · B5 不写服装）／开＝按描述出图（服装行显示 · B5 不写服装） */
 if(f.hi){
 var _out=(W.out!==false);
-var _gray=!!W.hi||!H.lib;
+var _gray=!!W.hi||!H.lib||!!W.no;
 var _gTip=W.hi?'出图已锁定：服装高阶开启（高阶优先，默认出图）':(H.lib?'':'出图已锁定：角色库无设定图（描述直接进角色生成提示词，无图可重出）');
 h+='<span class="ljSlot"><span class="ljSL" style="margin-right:6px">高阶</span><span class="ljSw'+(W.hi?' on':'')+'" onclick="LJ.rhi(\''+it.k+'\','+act+')" title="'+(W.hi?'关闭 · 回到 AI 优选简述':'开启 · 服装行让位，本面板「确认」后再展开 E2 服装卡（出图强制开）')+'"><span class="ljSwK"></span></span>';
+h+='<span class="ljSL" style="margin:0 6px 0 16px">无需</span><span class="ljSw'+(W.no?' on':'')+'" onclick="LJ.rno(\''+it.k+'\','+act+')" title="'+(W.no?'关闭 · 恢复服装描述':'开启 · 本角色不出镜／服装无意义：服装行收起，回传 `服装=无需`，不触发 E2')+'"><span class="ljSwK"></span></span>';
 h+='<span class="ljSL" style="margin:0 6px 0 16px">出图</span><span class="ljSw'+(_out?' on':'')+(_gray?' gray':'')+'" onclick="LJ.rout(\''+it.k+'\','+act+')" title="'+(W.hi?'出图已锁定：服装高阶开启（高阶优先，默认出图）':(H.lib?(W.out===false?'开 · 按服装描述重出服装图（B5 不写服装）':'关 · 沿用角色库设定图自带服装（B5 不写服装）'):'出图已锁定：角色库无设定图（描述直接进角色生成提示词，无图可重出）'))+'"><span class="ljSwK"></span></span>';
 h+='</span>';
 return;}
@@ -332,6 +334,7 @@ if(f.hx){if(f.hx==='sex')ps.push('形象='+wval(fk)+' '+wval('rf_'+it.k+'_'+ri+'
 if(f.im){ps.push('形象高阶='+(_H.img?'开（E1 角色卡）':'关'));return;}
 if(f.tx){if(_H.img)return;ps.push(f.label+'='+edVal('rt_'+it.k+'_'+ri+'_'+f.tx,f.v));return;}
 if(f.sum){
+if(W.no)return;
 if(!W.hi && (_H.lib ? (W.out!==false&&_showWear) : true)){
 var _l2=(W.list&&W.list.length)?W.list:[{sc:'',sum:W.sum||''}];
 ps.push(_l2.length<=1?'服装=套 '+(_l2[0].sum||'（AI 优选）')
@@ -339,6 +342,7 @@ ps.push(_l2.length<=1?'服装=套 '+(_l2[0].sum||'（AI 优选）')
 }
 return;}
 if(f.hi){
+if(W.no){ps.push('服装=无需');return;}
 var _o=W.hi?true:(W.out!==false);   /* 高阶开＝出图强制开（不沿用旧 out=false） */
 /* 只回传「当前生效的那个开关」：高阶开＝写出图无意义（忽略不写）／高阶关＝出图关即不写高阶
    库图有无／复用与否＝判断信息（供四情形判定），❌ 不进回传 */
@@ -742,6 +746,10 @@ if(W.hi){toast('出图已锁定：服装高阶开启（高阶优先，默认出�
 if(!H.lib){toast('出图已锁定：角色库无设定图（描述直接进角色生成提示词）');return;}
 pushUndo();W.out=(W.out===false);renderItem(k);
 toast(W.out?'出图 开 · 按服装描述重出服装图':'出图 关 · 沿用设定图自带服装');}
+function rno(k,ri){var it=ITEMS[k];if(!it||!it.tabs)return;var ro=it.tabs.list[ri];if(!ro)return;
+var W=ro.wear||(ro.wear={hi:false,out:true,sets:1,sum:''});pushUndo();W.no=!W.no;
+if(W.no)W.hi=false;   /* 无需 与 服装高阶 互斥：无需时装无可修 */
+renderItem(k);toast(W.no?'已设无需服装 · 服装行收起，回传 服装=无需':'已恢复服装描述');}
 function rimg(k,ri){var it=ITEMS[k];if(!it||!it.tabs)return;var ro=it.tabs.list[ri];if(!ro)return;
 var H=ro.hero||(ro.hero={img:false});pushUndo();H.img=!H.img;renderItem(k);
 /* 只记状态：不渲 E1、不单独回传 —— B4「确认」回传后按「形象高阶」值判定 */
