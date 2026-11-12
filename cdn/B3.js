@@ -73,8 +73,10 @@ DATA.sections.forEach(function(sec){sec.items.forEach(function(it){
 if(it.type!=='swaprow'||it.key!=='mainline')return;
 it.rows.forEach(function(row,i){
 row.ioKey='m'+(i+1)+'i';row.catKey='m'+(i+1)+'c';
-row.slots.push({ key:row.ioKey, label:'内外', value:'室内', side:1, cyc:['室内','室外','户外'] });
-row.slots.push({ key:row.catKey, label:'取景', value:'住宅区', side:1, candidates:SCE_POOL });
+function has(k){return (row.slots||[]).some(function(s){return s.key===k;});}
+/* 幂等：数据里若已带这两槽（build 注入）则不再追加，避免重复渲染 */
+if(!has(row.ioKey))row.slots.push({ key:row.ioKey, label:'内外', value:'室内', side:1, cyc:['室内','室外','户外'] });
+if(!has(row.catKey))row.slots.push({ key:row.catKey, label:'取景', value:'住宅区', side:1, candidates:SCE_POOL });
 });});});
 })();
 /* ==================== 数据区结束 · 以下组件代码固定 ==================== */
