@@ -209,6 +209,12 @@ ROOT.querySelector('.ljTt').textContent=DATA.title;
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function escAttr(s){return esc(s).replace(/"/g,'&quot;');}
 function cp(x){return JSON.parse(JSON.stringify(x));}
+/* 语言全池：与 template/pool/b4_池.txt「人声·语言」同口径（去掉「无语系」）。
+   推荐 6–8 项走单列（数据 ln.lc），更多…走双栏：左华语·方言／右外语 */
+var LANG_POOL=[
+ ["华语 · 方言",["国语","粤语","川渝话","潮汕话","闽南语","上海话","东北话","客家话","维吾尔语","藏语","蒙语","彝语","哈萨克语"]],
+ ["外语",["英语","日语","韩语","俄语","法语","德语","西班牙语","意大利语","葡萄牙语","泰语","越南语","阿拉伯语","印语","拉丁语","梵语"]]
+];
 function cv(c){return (typeof c==='string')?c:(c.v||'');}
 function oneLine(s){return String(s).replace(/\n/g,' ｜ ');}
 var ITEMS={},W2={},WOWN={};
@@ -222,7 +228,7 @@ if(it.groups)it.groups.forEach(function(g,gi){g.rows.forEach(function(r,ri){
 var _LS=(r.lines&&r.lines.length)?r.lines:(r.line?[r.line]:[]);
 _LS.forEach(function(ln){
 W2[ln.rw]={c:ln.rc||null,v:ln.rv||''};WOWN[ln.rw]=it.k;
-W2[ln.lw]={c:ln.lc||null,v:ln.lv||''};WOWN[ln.lw]=it.k;
+W2[ln.lw]={c:ln.lc||null,v:ln.lv||'',lang:true};WOWN[ln.lw]=it.k;
 W2[ln.tw]={c:(ln.byRole&&ln.byRole[ln.rv])||[ln.tv],v:ln.tv,roleV:ln.rv,roleKey:ln.rw,byRole:ln.byRole||{}};WOWN[ln.tw]=it.k;
  var _tk=ln.tw+'_t',_ak=ln.tw+'_a',_gk=ln.tw+'_g';
  W2[_tk]={c:['对白','画外音','内心VO','旁白','解说','VO','歌声'],v:(ln.tvType||'对白')};WOWN[_tk]=it.k;
@@ -676,12 +682,46 @@ function stCust(e){if(e.key==='Enter'||e.keyCode===13){e.preventDefault();stPick
 function sw(wk,el){var w=W2[wk];if(!w)return;
 POP.type='w';POP.wk=wk;
 if(w.sty||w.two){POP.el=el;POP.gi=0;drawStyleOne(el);return;}
+if(w.lang){POP.el=el;drawLangOne(el);return;}
 if(!w.c)return;var list=w.c;var cur=wval(wk);
 var html=list.map(function(c,i){return '<div class="ljPc'+(cv(c)===cur?' on':'')+'" onclick="LJ.psel('+i+')"><span>'+esc(cv(c))+'</span></div>';}).join('');
 html+='<div class="ljPc"><input id="b4csw" placeholder="自定义…（回车选中）" style="background:transparent;border:none;outline:none;color:#C9D4DE;font-size:12.5px;width:100%;font-family:inherit" onkeydown="LJ.cswk(event)"></div>';
 openPopAt(el,html);}
 function cswk(e){if(e.key==='Enter'||e.keyCode===13){e.preventDefault();var v=e.target.value.trim();if(v&&POP.type==='w'){var w=W2[POP.wk];if(!w)return;
 w.c.push(v);pushUndo();S.pick[POP.wk]=w.c.length-1;closePop();renderAll();}}}
+
+/* ===== 语言：推荐 6–8 项（单列）＋「更多语言…」（双栏 · 全池）＋ 自定义 =====
+   预选＝数据 ln.lv（由角色库「主 X × 副 Y」推理，X 排首）；换选不改台词文本，p5 负责翻译 */
+function langItemHTML(v,cur){var q=String(v).replace(/'/g,"\\'");
+  return '<div class="ljPc'+(v===cur?' on':'')+'" onclick="LJ.langPick(\''+q+'\')"><span>'+esc(v)+'</span></div>';}
+function langRecs(){var w=W2[POP.wk]||{},out=[],cur=wval(POP.wk);
+  (w.c||[]).forEach(function(v){var x=cv(v);if(x&&out.indexOf(x)<0)out.push(x);});
+  if(cur&&out.indexOf(cur)<0)out.unshift(cur);
+  return out;}
+function drawLangOne(el){POP.type='w';
+  var cur=wval(POP.wk),L=langRecs();
+  var html=L.map(function(v){return langItemHTML(v,cur);}).join('');
+  openPopAt(el||POP.el,html
+    +'<div class="ljMore" onclick="event.stopPropagation();LJ.langMore()">更多语言…</div>',false);}
+function langMore(){POP.gi=0;
+  var G=LANG_POOL,cur=wval(POP.wk);
+  var cats=G.map(function(x,i){return '<div class="ljCat'+(i===0?' on':'')+'" onclick="LJ.langCat('+i+')">'+esc(x[0])+'</div>';}).join('');
+  var items=G[0][1].map(function(v){return langItemHTML(v,cur);}).join('');
+  pop.classList.remove('stone','pickone');pop.classList.add('wide');
+  pop.innerHTML='<div class="ljSplit"><div class="ljCats">'+cats+'</div><div class="ljOpts" id="ljPopL">'+items+'</div></div>'
+    +'<div class="ljFix"><div class="ljPc" onclick="event.stopPropagation();LJ.langBack()" title="收回单列">收起</div>'
+    +'<div class="ljPc"><input id="b4csw" placeholder="自定义…（回车选中）" class="ljCst" onkeydown="LJ.cswk(event)"></div></div>';
+  fitWide();placePop(POP.el);}
+function langCat(i){POP.gi=i;
+  var G=LANG_POOL,g=G[i]||G[0],cur=wval(POP.wk),L=document.getElementById('ljPopL');
+  if(L)L.innerHTML=g[1].map(function(v){return langItemHTML(v,cur);}).join('');
+  var cs=pop.querySelectorAll('.ljCat');
+  for(var j=0;j<cs.length;j++)cs[j].className='ljCat'+(j===i?' on':'');}
+function langBack(){drawLangOne(POP.el);}
+function langPick(v){v=String(v||'').trim();if(!v)return;var w=W2[POP.wk];if(!w)return;
+  pushUndo();var i=-1;for(var j=0;j<w.c.length;j++){if(cv(w.c[j])===v){i=j;break;}}
+  if(i<0){w.c.push(v);i=w.c.length-1;}
+  S.pick[POP.wk]=i;closePop();renderAll();}
 var WRSUM={
 '简约质感系':{list:[{sc:'',sum:'素白拾光套装 ｜ 米白宽松棉麻衬衫 ｜ 直筒深色休闲长裤 ｜ 白帆布便鞋'}]},
 '复古 & 地域氛围感':{list:[
@@ -1216,7 +1256,7 @@ ROOT.addEventListener('wheel',function(e){if(e.target.closest('.ljBd')||e.target
 if(window.__ljKH)document.removeEventListener('keydown',window.__ljKH);
 window.__ljKH=function(e){if((e.ctrlKey||e.metaKey)&&String(e.key).toLowerCase()==='z'){var ae=document.activeElement;if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.getAttribute('contenteditable')==='true'))return;e.preventDefault();undo();}};
 document.addEventListener('keydown',window.__ljKH);
-window.LJ={tline:tline,sw:sw,stCat:stCat,stPick:stPick,stCust:stCust,stMore:stMore,stBack:stBack,psel:psel,cswk:cswk,rtab:rtab,rhi:rhi,rout:rout,rimg:rimg,bmPick:bmPick,bmSame:bmSame,bmMore:bmMore,bmLk:bgmLk,bmCat:bmCat,bmOne:bmOne,bmTake:bmTake,bmCst:bmCst,bmAdd:bmAdd,bmDel:bmDel,bsPick:bsPick,bsMore:bsMore,bsCat:bsCat,bsBack:bsBack,bsTake:bsTake,bsCst:bsCst,bsDice:bsDice,styDice:styDice,bsNext:bsNext,bmReroll:bmReroll,swReroll:swReroll,bmCycle:bmCycle,bmVoice:bmVoice,bmVoiceSeg:bmVoiceSeg,bmRand:bmRand,bmFold:bmFold,sed:sed,ed:ed,bat:bat,buf:buf,lockB:lockB,ek:ek,unbat:unbat,reset:reset,undo:undo,ghi:ghi,confirm:confirmAll,submit:submit,closeM:closeM,up:up,skip:skip};
+window.LJ={tline:tline,sw:sw,stCat:stCat,stPick:stPick,stCust:stCust,stMore:stMore,stBack:stBack,psel:psel,cswk:cswk,rtab:rtab,rhi:rhi,rout:rout,rimg:rimg,drawLangOne:drawLangOne,langMore:langMore,langCat:langCat,langBack:langBack,langPick:langPick,bmPick:bmPick,bmSame:bmSame,bmMore:bmMore,bmLk:bgmLk,bmCat:bmCat,bmOne:bmOne,bmTake:bmTake,bmCst:bmCst,bmAdd:bmAdd,bmDel:bmDel,bsPick:bsPick,bsMore:bsMore,bsCat:bsCat,bsBack:bsBack,bsTake:bsTake,bsCst:bsCst,bsDice:bsDice,styDice:styDice,bsNext:bsNext,bmReroll:bmReroll,swReroll:swReroll,bmCycle:bmCycle,bmVoice:bmVoice,bmVoiceSeg:bmVoiceSeg,bmRand:bmRand,bmFold:bmFold,sed:sed,ed:ed,bat:bat,buf:buf,lockB:lockB,ek:ek,unbat:unbat,reset:reset,undo:undo,ghi:ghi,confirm:confirmAll,submit:submit,closeM:closeM,up:up,skip:skip};
 })();
 
 /* 成形标记：load 后两帧置 ljReady —— 渲染中不挂滚动条 */
