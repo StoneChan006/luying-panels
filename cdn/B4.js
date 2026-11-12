@@ -912,8 +912,7 @@ function bsList(){
   var cur=wval('bgmstyle'),out=[],R=bsRec();
   if(cur&&BGM_STYLE_FLAT.indexOf(cur)>=0)out.push(cur);
   R.forEach(function(v){if(out.indexOf(v)<0&&out.length<8)out.push(v);});
-  if(out.length<5)BGM_STYLE_FLAT.forEach(function(v){if(out.indexOf(v)<0&&out.length<8)out.push(v);});
-  return out;}
+  return out;}   /* 本期推荐给几项就列几项：❌ 拿池里别的风格凑数当推荐 */
 function bsItem(v,cur){var q=String(v).replace(/'/g,"\\'");
   return '<div class="ljPc'+(v===cur?' on':'')+'" onclick="LJ.bsTake(\''+q+'\')"><span>'+esc(v)+'</span></div>';}
 function drawBsOne(el){
@@ -976,14 +975,24 @@ function clearBgmAll(b){
   (b.segs||[]).forEach(function(sg){sg.listen=[];sg.rhythm=[];sg.iMain=[];sg.iRange='';sg.iSub=[];sg.iNoise=[];sg.bpm='';
     sg.vOn=false;sg.vLine=[];sg.vTimbre='';sg.vRange='';sg.vLang='';sg.vStyle=[];});
   (b.trans||[]).forEach(function(t){t.listen='';t.rhythm='';t.bpm='';});}
+/* 选中风格＝换成本期为该风格准备好的六段表（数据 styleDef.tab[风格]）
+   推荐项之外：子值全清空；推荐项缺表：不动（数据缺失，由 build 提示） */
 function applyStyleDemo(){
   var it=ITEMS['bgm'],b=it&&it.bgm;if(!b)return;
   var st=wval('bgmstyle'),R=bsRec();
-  if(R.indexOf(st)<0){clearBgmAll(b);return;}     /* 推荐项之外：六段＋五过渡子值全清空 */
-  /* 推荐项：值一律不动（当期这套六段表就是按本片推理的，换风格只换各轴候选）
-     若上一手选过非推荐项、值已被清空，切回推荐项＝恢复当期表 */
-  var empty=!(b.segs||[]).some(function(sg){return (sg.listen&&sg.listen.length)||(sg.iMain&&sg.iMain.length)||sg.bpm;});
-  if(empty&&BGM_AUTH){b.segs=cp(BGM_AUTH.segs);b.trans=cp(BGM_AUTH.trans);}}
+  var tab=(b.styleDef&&b.styleDef.tab||{})[st];
+  if(!tab){
+    if(R.indexOf(st)<0)clearBgmAll(b);
+    return;}
+  (b.segs||[]).forEach(function(sg,i){
+    var s=(tab.segs||[])[i];if(!s)return;
+    sg.listen=(s.listen||[]).slice();sg.rhythm=(s.rhythm||[]).slice();sg.bpm=s.bpm||'';
+    sg.iMain=(s.iMain||[]).slice();sg.iRange=s.iRange||'';
+    sg.iSub=(s.iSub||[]).slice();sg.iNoise=(s.iNoise||[]).slice();
+    sg.vOn=false;sg.vLine=[];sg.vTimbre='';sg.vRange='';sg.vLang='';sg.vStyle=[];});
+  (b.trans||[]).forEach(function(t,i){
+    var s=(tab.trans||[])[i];if(!s)return;
+    t.listen=s.listen||'';t.rhythm=s.rhythm||'';t.bpm=s.bpm||'';});}
 /* 预选态：AI 已选值原样保留（❌ 不覆盖、❌ 不裁剪），只把「项数少于方案表」的多值轴按方案推荐补齐
    —— 面板一打开就是方案该有的层数（表给 2 项就补到 2 项），不用用户手动点 `＋` */
 function presetFill(){
