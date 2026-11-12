@@ -700,9 +700,11 @@ function langRecs(){var w=W2[POP.wk]||{},out=[],cur=wval(POP.wk);
   return out;}
 function drawLangOne(el){POP.type='w';
   var cur=wval(POP.wk),L=langRecs();
-  var html=L.map(function(v){return langItemHTML(v,cur);}).join('');
-  openPopAt(el||POP.el,html
-    +'<div class="ljMore" onclick="event.stopPropagation();LJ.langMore()">更多语言…</div>',false);}
+  var opts=L.map(function(v){return langItemHTML(v,cur);}).join('');
+  openPopAt(el||POP.el,'<div class="ljOpts" id="ljPopL">'+opts+'</div>'
+    +'<div class="ljFixOne"><div class="ljMore" onclick="event.stopPropagation();LJ.langMore()">更多语言...</div>'
+    +'<div class="ljPc"><input id="b4csw" placeholder="自定义…（回车选中）" class="ljCst" onkeydown="LJ.cswk(event)"></div></div>',false);
+  stonePop(el||POP.el);}
 function langMore(){POP.gi=0;
   var G=LANG_POOL,cur=wval(POP.wk);
   var cats=G.map(function(x,i){return '<div class="ljCat'+(i===0?' on':'')+'" onclick="LJ.langCat('+i+')">'+esc(x[0])+'</div>';}).join('');
