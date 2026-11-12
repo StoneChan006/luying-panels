@@ -245,6 +245,9 @@ var S={tx:{},pick:{},sty:{},rA:{},bA:{},bSw:{},bPk:{},bPc:{},bat:{},buf:{},ed:{}
 /* 场景区初值（复位还原）：每场的 scenes（含各套高阶开关与场景串三段）—— 就地写在 ITEMS 数据上，不还原就会「复位没反应」 */
 var G0=(ITEMS['story']&&ITEMS['story'].groups)?cp(ITEMS['story'].groups.map(function(g){return {scenes:g.scenes||[]};})):null;
 
+/* BGM 当期已落表（主选风格原值）：换到别的推荐项后再点回主选＝恢复这张表；不复原就会被预填一路覆盖 */
+var BGM_AUTH=(ITEMS['bgm']&&ITEMS['bgm'].bgm)?{segs:cp(ITEMS['bgm'].bgm.segs||[]),trans:cp(ITEMS['bgm'].bgm.trans||[])}:null;
+
 function initPicks(){for(var wk in W2){var w=W2[wk];
 if(w.byRole){w.c=((w.byRole[w.roleV||''])||[w.v]).slice();}
 var arr=w.c||[],idx=0;
@@ -811,6 +814,7 @@ function poolHas(ax,sec,v){return poolFlat(ax,sec).indexOf(v)>=0;}
    只在池内取值（❌ 池外词、❌ `无`）· 8 项封顶 · 推荐只是预填候选，不改变 `＋／－` 交互 */
 function bgmRecList(ax,sec){
   var it=ITEMS['bgm'],b=it&&it.bgm,k=recAxOf(ax,sec),out=[];
+  if(bsRec().indexOf(wval('bgmstyle'))<0)return [];   /* 非本期推荐项：不给任何子值候选 */
   function add(v){if(v&&v!=='无'&&poolHas(ax,sec,v)&&out.indexOf(v)<0&&out.length<8)out.push(v);}
   (((b&&b.recs)||{})[k]||[]).forEach(add);
   (bgmRecOf(k)||[]).forEach(add);
@@ -845,10 +849,13 @@ var BGM_STYLE_OVER = {
 };
 /* 当前风格→该轴推荐值：单风格差异优先，否则取所属大类（含 vRange／rhythmT，覆盖过渡行） */
 function bgmCatOf(v){for(var i=0;i<BGM_STYLE.length;i++){if(BGM_STYLE[i].c.indexOf(v)>=0||BGM_STYLE[i].k===v)return BGM_STYLE[i].k;}return '';}
+/* 该轴可选子值：只有本期推荐项给（取数据 recs＝当期推理）；非推荐项一律空
+   —— ❌ 不用面板里的 BGM_STYREC／BGM_STYLE_OVER 旧表冒充当期推荐 */
 function bgmRecOf(ax){
-  var st=wval('bgmstyle'),o=(BGM_STYLE_OVER[st]||{})[ax];
-  if(o&&o.length)return o;
-  var p=BGM_STYREC[bgmCatOf(st)];return (p&&p[ax])?p[ax]:[];}
+  var st=wval('bgmstyle');
+  if(bsRec().indexOf(st)<0)return [];
+  var p=ITEMS['bgm']&&ITEMS['bgm'].bgm,r=(p&&p.recs&&p.recs[ax])||[];
+  return r.slice();}
 /* 过渡行的节奏＝`rhythmT`（节奏过渡轴），其余轴同名 */
 function recAxOf(ax,sec){return (sec==='trans'&&ax==='rhythm')?'rhythmT':ax;}
 function axisOf(ax,sec,v){var A=poolA(ax,sec);for(var i=0;i<A.length;i++){if(A[i].c.indexOf(v)>=0)return A[i].k;}return '';}
@@ -964,48 +971,19 @@ function bsTake(v){v=String(v||'').trim();if(!v)return;
   closePop();renderAll();updMain();}
 /* 音乐风格＝直接演示：选中即按该风格（单风格差异 → 大类）把六段＋五过渡的每个换选槽改成推荐值
    同轴按段序轮换取词（六段不会一模一样）；人声未勾的段不动声线；一次 pushUndo ＝ Ctrl+Z 全还原 */
+/* 非本期推荐项：六段＋过渡全部子值清空（❌ 不留上面板旧表的值） */
+function clearBgmAll(b){
+  (b.segs||[]).forEach(function(sg){sg.listen=[];sg.rhythm=[];sg.iMain=[];sg.iRange='';sg.iSub=[];sg.iNoise=[];sg.bpm='';
+    sg.vOn=false;sg.vLine=[];sg.vTimbre='';sg.vRange='';sg.vLang='';sg.vStyle=[];});
+  (b.trans||[]).forEach(function(t){t.listen='';t.rhythm='';t.bpm='';});}
 function applyStyleDemo(){
   var it=ITEMS['bgm'],b=it&&it.bgm;if(!b)return;
-  var cat=bgmCatOf(wval('bgmstyle'));
-  if(!cat)return;                                  /* 自定义风格：无预设，不动值也不动人声 */
-  var vp=(BGM_STYREC[cat]&&BGM_STYREC[cat].vPat)||[0,1,0,1,0,1];
-  function recOf(ax){return (bgmRecOf(ax)||[]).filter(function(v){return v&&v!=='无';});}
-  function pickV(ax,k,sec){var r=recOf(ax);if(!r.length)return '';
-    for(var j=0;j<r.length;j++){var v=r[(k+j)%r.length];if(poolHas(ax,sec,v))return v;}return '';}
-  function one(ax,k,sec,cur){var v=pickV(ax,k,sec);return v||cur||'';}
-  /* 该轴该段铺几项＝方案用量表 BGM_N（bgmSlots 统一口径 · 过渡行恒 1） */
-  function nOf(ax,k,sec){return bgmSlots(ax,k,sec);}
-  /* 多值轴＝按方案表铺项（❌ 不按上限一把铺满）：起点按段序轮换 · 同段已被别的轴占用的词跳过 */
-  function arrN(ax,k,sec,cur,skip){
-    var n=nOf(ax,k,sec),out=[];
-    var r=recOf(ax).filter(function(v){return poolHas(ax,sec,v)&&(skip||[]).indexOf(v)<0;});
-    if(!r.length){return (cur&&cur.length)?cur.slice():[];}
-    for(var j=0;j<r.length&&out.length<n;j++){var v=r[(k+j)%r.length];if(out.indexOf(v)<0)out.push(v);}
-    return out.length?out:((cur&&cur.length)?cur.slice():[]);}
-  (b.segs||[]).forEach(function(sg,si){
-    /* 先定节奏（推荐项少、易被挤掉），听感再避开节奏已用的词（`留白` 不重复），两边都能铺满 */
-    sg.rhythm=arrN('rhythm',si,'segs',sg.rhythm,null);
-    sg.listen=arrN('listen',si,'segs',sg.listen,sg.rhythm);
-    /* 主色＝身份轴，不参与段序轮换（p4「主色不轮换」）：起段取推荐首项，其余段默认「同上」整条承接；
-       要换第二色由 AI／用户手动点（如 收／转 让大提琴上台） */
-    if(si===0){sg.iMain=arrN('iMain',si,'segs',sg.iMain,null);}else{sg.iMain=['同上'];} 
-    sg.iRange=one('iRange',si,'segs',sg.iRange);
-    sg.iSub=arrN('iSub',si,'segs',sg.iSub,null);
-    sg.iNoise=arrN('iNoise',si,'segs',sg.iNoise,null);
-    sg.bpm=one('bpm',si,'segs',sg.bpm);
-    /* 人声＝预设套的一部分：按 vPat 开关，关的段清空五轴（勾回来再自己选） */
-    sg.vOn=!!vp[si];
-    if(sg.vOn){
-      sg.vLine=arrN('vLine',si,'segs',sg.vLine,null);
-      sg.vTimbre=one('vTimbre',si,'segs',sg.vTimbre);
-      sg.vRange=one('vRange',si,'segs',sg.vRange);
-      sg.vLang=one('vLang',si,'segs',sg.vLang);
-      sg.vStyle=arrN('vStyle',si,'segs',sg.vStyle,null);
-    }else{sg.vLine=[];sg.vTimbre='';sg.vRange='';sg.vLang='';sg.vStyle=[];}});
-  (b.trans||[]).forEach(function(tr,ti){
-    tr.listen=one('listen',ti+3,'trans',tr.listen);
-    tr.rhythm=one('rhythmT',ti,'trans',tr.rhythm);
-    tr.bpm=one('bpm',ti+1,'trans',tr.bpm);});}
+  var st=wval('bgmstyle'),R=bsRec();
+  if(R.indexOf(st)<0){clearBgmAll(b);return;}     /* 推荐项之外：六段＋五过渡子值全清空 */
+  /* 推荐项：值一律不动（当期这套六段表就是按本片推理的，换风格只换各轴候选）
+     若上一手选过非推荐项、值已被清空，切回推荐项＝恢复当期表 */
+  var empty=!(b.segs||[]).some(function(sg){return (sg.listen&&sg.listen.length)||(sg.iMain&&sg.iMain.length)||sg.bpm;});
+  if(empty&&BGM_AUTH){b.segs=cp(BGM_AUTH.segs);b.trans=cp(BGM_AUTH.trans);}}
 /* 预选态：AI 已选值原样保留（❌ 不覆盖、❌ 不裁剪），只把「项数少于方案表」的多值轴按方案推荐补齐
    —— 面板一打开就是方案该有的层数（表给 2 项就补到 2 项），不用用户手动点 `＋` */
 function presetFill(){
@@ -1093,6 +1071,9 @@ function bmAdd(sec,i,ax,e){if(e&&e.stopPropagation)e.stopPropagation();if((sec==
      节奏追加时跳过本段听感已用的词（避免同段 `留白` 重复） */
   var sib=(ax==='rhythm'&&Array.isArray(row.listen))?row.listen:[];
   var rec=(bgmRecList(ax,sec)||[]).filter(function(x){return sib.indexOf(x)<0;});
+  /* 无推荐（非本期推荐项）：不代选 —— ❌ 不从同组／全池里替用户挑一个
+     直接弹候选层（推荐为空，仍可从「更多...」进全池或自定义） */
+  if(!rec.length){POP.type='bmp';POP.bm={sec:sec,i:i,ax:ax,idx:arr.length,el:null};bmOne(null);return;}
   if(rec.length)v=pick(rec);
   if(!v&&an)A.forEach(function(g){if(g.k===an&&!v)v=pick(g.c);});
   if(!v)v=pick(poolFlat(ax,sec));
