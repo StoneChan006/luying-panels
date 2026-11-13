@@ -150,14 +150,21 @@ function saveMd(t){
   a.href=URL.createObjectURL(b);a.download='B5_回传.md';document.body.appendChild(a);a.click();document.body.removeChild(a);
   setTimeout(function(){URL.revokeObjectURL(a.href);},1500);return true;}catch(e){return false;}
 }
-function copyTxt(t){try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t);return true;}}catch(e){}return false;}
+function copyTxt(t){
+ var ok=false;
+ try{var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.top='-9999px';
+  document.body.appendChild(ta);ta.focus();ta.select();ok=document.execCommand('copy');document.body.removeChild(ta);}catch(e){}
+ if(!ok){try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t);ok=true;}}catch(e){}}
+ return ok;
+}
+function fp(t){var h=2166136261;for(var i=0;i<t.length;i++){h^=t.charCodeAt(i);h=(h*16777619)>>>0;}return ('0000000'+h.toString(16)).slice(-8);}
 function submit(){if(SENT)return;
  if(!OUTLINES.length)confirmAll();
  if(!OUTLINES.length){toast('没有可提交的内容');return;}
  ovl.classList.remove('on');
  var t=echoText(),saved=saveMd(t),copied=copyTxt(t);
  if(typeof sendPrompt==='function'){
-  sendPrompt('【执行脚本·确认】回传已存 B5_回传.md（'+t.length+' 字）· 直接读文件，不必分条。');
+  sendPrompt('【执行脚本·确认】回传 '+t.length+' 字 · #'+fp(t)+' · 存'+(saved?'✓':'✗')+' 剪'+(copied?'✓':'✗')+' · 读文件继续，不必分条。');
   SENT=true;var _bt=ROOT.querySelector('#b5mainT');if(_bt)_bt.textContent='确认';
   toast('已存 B5_回传.md（'+t.length+' 字）');return;
  }
