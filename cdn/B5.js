@@ -151,9 +151,17 @@ function saveMd(t){
   setTimeout(function(){URL.revokeObjectURL(a.href);},1500);return true;}catch(e){return false;}
 }
 function copyTxt(t){
- var ok=false;
- try{var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.top='-9999px';
-  document.body.appendChild(ta);ta.focus();ta.select();ok=document.execCommand('copy');document.body.removeChild(ta);}catch(e){}
+ var ok=false,ta=null;
+ try{
+  ta=document.createElement('textarea');ta.value=t;
+  ta.setAttribute('readonly','');
+  ta.style.cssText='position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;border:0;padding:0;z-index:-1';
+  document.body.appendChild(ta);
+  ta.focus({preventScroll:true});
+  ta.select();ta.setSelectionRange(0,t.length);
+  ok=document.execCommand('copy');
+ }catch(e){ok=false;}
+ if(ta&&ta.parentNode)ta.parentNode.removeChild(ta);
  if(!ok){try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t);ok=true;}}catch(e){}}
  return ok;
 }
@@ -162,15 +170,17 @@ function submit(){
  if(SENT)return;
  if(!OUTLINES.length)confirmAll();
  if(!OUTLINES.length){toast('没有可提交的内容');return;}
- var t=echoText(),saved=saveMd(t),copied=copyTxt(t),h=fp(t);
- var msg='【执行脚本·确认】#'+h+' · '+t.length+'字'+(saved?' ·已存':'')+(copied?' ·已剪':'');
+ var t=echoText(),h=fp(t);
+ var msg='【执行脚本·确认】#'+h+' · '+t.length+'字';
  var ok=false;
  if(typeof sendPrompt==='function'){try{sendPrompt(msg);ok=true;}catch(e){ok=false;}}
+ var copied=copyTxt(t);
  ovl.classList.remove('on');
- var bt=ROOT.querySelector('#b5mainT');if(bt)bt.textContent=ok?'已提交':'提交失败';
+ var bt=ROOT.querySelector('#b5mainT');if(bt)bt.textContent=ok?'已提交':'未发送';
  var st=document.querySelector('#b5subst');
- if(st){st.textContent=(ok?'已提交 ':'未能发送 ')+'· #'+h+' · '+t.length+' 字'+(saved?' · 已存 B5_回传.txt':'')+(copied?' · 已复制':'')+(ok?'':' · 请把上一行念给 AI');st.style.display='block';}
- toast(ok?('已提交 · '+t.length+' 字'):('未能自动发送 · 已存 B5_回传.txt（'+t.length+' 字）'));
+ if(st){st.textContent=ok?('已提交 · #'+h+' · '+t.length+' 字'+(copied?' · 已复制':''))
+                      :('未能发送 · 把这条发我：'+msg);st.style.display='block';}
+ toast(ok?('已提交 · '+t.length+' 字'):('未能自动发送 · 请发：'+msg));
  if(ok)SENT=true;
 }
 function confirmAll(){if(PEND.length){submit();return;}if(SENT)return;var out=[];
