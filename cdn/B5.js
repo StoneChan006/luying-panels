@@ -157,7 +157,7 @@ function copyTxt(t){
  if(!ok){try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t);ok=true;}}catch(e){}}
  return ok;
 }
-function fp(t){var h=2166136261;for(var i=0;i<t.length;i++){h^=t.charCodeAt(i);h=(h*16777619)>>>0;}return ('0000000'+h.toString(16)).slice(-8);}
+function fp(t){var h=2166136261;for(var i=0;i<t.length;i++){h=Math.imul(h^t.charCodeAt(i),16777619)>>>0;}return ('0000000'+h.toString(16)).slice(-8);}
 function submit(){
  if(SENT)return;
  if(!OUTLINES.length)confirmAll();
