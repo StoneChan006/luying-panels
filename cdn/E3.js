@@ -62,6 +62,17 @@ var S={st:[],sent:false};
 var CUR=0;
 CARD.forEach(function(){S.st.push({pick:{},ed:{}});});
 function cardOf(ci){return CARD[(ci==null?CUR:ci)]||CARD[0]||{};}
+/* 推荐取值链：本卡 rec（本期按该卡场景推理）→ CATREC[取景] → REC；一律过滤为池内值
+   ⚠️ 卡级 rec 必须优先：CATREC 是引擎里的通用类目表，不是本期推理 */
+function recOf(ci,ax){
+  var c=cardOf(ci)||{},pool=(AX[ax]||[]);
+  function ok(a){return (a||[]).filter(function(v){return pool.indexOf(v)>=0;});}
+  var own=ok((c.rec||{})[ax]);
+  if(own.length)return own;
+  var cr=ok((CATREC[c.取景]||{})[ax]);
+  if(cr.length)return cr;
+  return ok(REC[ax]);
+}
 function stOf(ci){return S.st[(ci==null?CUR:ci)]||{pick:{},ed:{}};}
 function rawOf(ax,ci){var c=cardOf(ci);return ax==='环境物'?c.环境物:(c.设定||{})[ax];}
 function valOf(ax,ci){var s=stOf(ci);return (s.pick[ax]!==undefined)?s.pick[ax]:rawOf(ax,ci);}
@@ -160,7 +171,7 @@ function render(){
 function randEnv(ci){
   /* 整批随机＝只从推荐项里挑 6-8 件（CATREC[取景] → REC → 池兜底） */
   var CR=CATREC[cardOf(ci).取景]||{};
-  var rec=(CR['环境物']&&CR['环境物'].length)?CR['环境物'].slice():((REC['环境物']||[]).slice());
+  var rec=recOf(ci,'环境物');
   var n=6+Math.floor(Math.random()*3),out=[];
   while(out.length<n&&rec.length){out.push(rec.splice(Math.floor(Math.random()*rec.length),1)[0]);}
   if(out.length<n){
@@ -223,8 +234,8 @@ function recList(ax){
   var pool=AX[ax]||[],out=[];
   if(ONEONLY[ax])return pool.slice(0,12);
   if(pool.length<=8)return pool.slice();
-  var _CR=(CATREC[cardOf(POP.ci).取景]||{})[ax];   /* 取景大类推荐优先（取景决定场景/空间），缺则回落 REC */
-  (_CR||REC[ax]||[]).forEach(function(v){if(pool.indexOf(v)>=0&&out.indexOf(v)<0)out.push(v);});
+  var _CR=recOf(POP.ci,ax);   /* 取景大类推荐优先（取景决定场景/空间），缺则回落 REC */
+  (_CR||[]).forEach(function(v){if(pool.indexOf(v)>=0&&out.indexOf(v)<0)out.push(v);});
   if(!out.length)out=pool.slice(0,6);
   var cur=asList(valOf(ax,POP.ci)).filter(function(x){return typeof x==='string'&&x;});
   cur.forEach(function(v){var i=out.indexOf(v);if(i>0){out.splice(i,1);out.unshift(v);}});
@@ -359,7 +370,7 @@ var LJ={
     var i=(ci==null?0:ci),st=stOf(i);
     pushUndo();
     var CR=CATREC[cardOf(i).取景]||{};   /* 取景大类优先：随机也落该类推荐里 */
-    var pick=function(ax){var a=(CR[ax]&&CR[ax].length)?CR[ax]:((REC[ax]&&REC[ax].length)?REC[ax]:(AX[ax]||['']));return a[Math.floor(Math.random()*a.length)];};
+    var pick=function(ax){var a=recOf(i,ax);if(!a.length)a=AX[ax]||[''];return a[Math.floor(Math.random()*a.length)];};
     ROWS.forEach(function(r){[r[1],r[2]].forEach(function(ax){st.pick[ax]=pick(ax);});});
     st.pick['环境物']=randEnv(i);
     closePop();render();
@@ -371,7 +382,7 @@ var LJ={
     if(!r)return;
     pushUndo();
     var CR=CATREC[cardOf(i).取景]||{};
-    var pick=function(ax){var a=(CR[ax]&&CR[ax].length)?CR[ax]:((REC[ax]&&REC[ax].length)?REC[ax]:(AX[ax]||['']));return a[Math.floor(Math.random()*a.length)];};
+    var pick=function(ax){var a=recOf(i,ax);if(!a.length)a=AX[ax]||[''];return a[Math.floor(Math.random()*a.length)];};
     [r[1],r[2]].forEach(function(ax){st.pick[ax]=pick(ax);});
     closePop();render();
   },
@@ -387,7 +398,7 @@ var LJ={
     var st=stOf(ci),arr=asList(valOf(ax,ci)).slice();
     if(i<0||i>=arr.length)return;
     var CR=CATREC[cardOf(ci).取景]||{};
-    var rec=(CR[ax]&&CR[ax].length)?CR[ax].slice():((REC[ax]||[]).slice());
+    var rec=recOf(ci,ax);
     var allp=(AX[ax]||[]).slice();
     var cur=arr[i];
     var rot=st.rot||(st.rot={});
