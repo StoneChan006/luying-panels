@@ -55,7 +55,7 @@ h+='<div class="ljCvf">'+esc(DATA.coverDir||'')+'</div>';
 h+='<div class="ljCvf">'+(files.length?files.map(esc).join('　／　'):'（待生成）')+'</div></div>';return h;}
 function blockHTML(p,pi){var h='<div class="ljSc"><div class="ljSh"><span class="ljSt">'+esc(p.name)+'</span>';
 if(p.link)h+='<a class="ljA" href="'+escAttr(p.link)+'" target="_blank" rel="noopener" title="新窗口打开发布入口">'+LK+'发布入口</a>';
-if(p.spec)h+='<span class="ljSp">'+esc(p.spec)+'</span>';
+/* 规格小字（标题≤N字·标签N个·封面比例）只做校验，不上面板：2026-11-14 */
 h+='</div>'+swapHTML(pi,'t','标题')+descHTML(pi)+tagsHTML(pi)+coverHTML(pi)+'</div>';
 return h;}
 function renderAll(){bd.innerHTML=DATA.platforms.map(function(p,pi){return blockHTML(p,pi);}).join('');}
