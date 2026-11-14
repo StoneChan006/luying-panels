@@ -253,14 +253,20 @@ function rowsBlock(items){
  });
  return h;}
 function lookHTML(items){
- var film=[],media=[],art=[];
+ var film=[],media=[],art=[],artM=[];
  items.forEach(function(f){
   if(f.lane==='art')art.push(f);
   else if(f.lane==='media')media.push(f);
   else film.push(f);
  });
  /* `both:true` ＝ 影视卡与媒体卡都要的槽（时长）：追加在末尾，跟随所属行的排布 */
- items.forEach(function(f){if(!f.both)return;if(film.indexOf(f)<0)film.push(f);if(media.indexOf(f)<0)media.push(f);});
+ items.forEach(function(f){
+  if(!f.both)return;
+  if(film.indexOf(f)<0)film.push(f);
+  /* `mrow` ＝ 媒体卡改投右栏（时长放在尺寸下面）：浅拷贝一份只换行号，key 不变 */
+  if(f.mrow){var c={};for(var k in f)c[k]=f[k];c.row=f.mrow;artM.push(c);}
+  else if(media.indexOf(f)<0)media.push(f);
+ });
  var mode=(S.look==='媒体')?'媒体':(S.look||'影视');
  var lane=((mode==='媒体')?media:film).filter(fieldOn);
  var h='<div class="ljBlk"><div class="ljSh"><span class="ljSt">项目基调</span></div>';
@@ -271,7 +277,7 @@ function lookHTML(items){
  h+='</div>';
  h+='<div class="ljItem"><div class="ljIH"><span class="ljIN">'+mode+'卡</span></div><div class="ljTwo">';
  h+='<div>'+rowsBlock(lane)+'</div>';
- h+='<div>'+rowsBlock(art)+'</div>';
+ h+='<div>'+rowsBlock((mode==='媒体')?art.concat(artM):art)+'</div>';
  h+='</div></div></div>';
  return h;}
 function setLook(m){if(S.sent)return;if(m!=='影视'&&m!=='媒体')return;if(S.look===m)return;pushUndo();S.look=m;fixDur();renderAll();}
