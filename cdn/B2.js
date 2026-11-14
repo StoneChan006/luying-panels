@@ -628,34 +628,41 @@ function undo(){var ae=document.activeElement;if(ae&&(ae.tagName==='INPUT'||ae.t
   var x=S.undo.pop();S.prop=cp(x.prop);S.look=cp(x.look);S.mode=x.mode;
   renderAll();updMain();}
 
-/* ── 分条发送（全库唯一实现）：单条 ≤430 · 单轮 ≤18 条 ── */
+/* ── 回传＝指针消息（与 B5 同源 · 2026-11-15）：全文写剪贴板 + 存 <面板>_回传.txt，消息只发一行指针 ── */
 var _Q=null,_H='',_N=0,_I=0;
-function chunkText(lines){
-  var MAX=430,cs=[],cur='';
-  function fl(){if(cur){cs.push(cur);cur='';}}
-  (lines||[]).forEach(function(l){
-    l=String(l==null?'':l);
-    var seg=(l.length>MAX)?(l.match(new RegExp('.{1,'+MAX+'}','g'))||[l]):[l];
-    seg.forEach(function(p){if(cur&&cur.length+p.length+1>MAX)fl();cur+=(cur?'\n':'')+p;});
-  });
-  fl();return cs;
+function hasPending(){return false;}
+function sendPending(){return 0;}
+function ljFp(t){var h=2166136261;for(var i=0;i<t.length;i++){h=Math.imul(h^t.charCodeAt(i),16777619)>>>0;}return ('0000000'+h.toString(16)).slice(-8);}
+function ljCopy(t){
+  var ok=false,ta=document.createElement('textarea');
+  try{ta.value=t;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;left:-9999px;top:0';document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,t.length);ok=document.execCommand('copy');}catch(e){ok=false;}
+  if(ta.parentNode)ta.parentNode.removeChild(ta);
+  if(!ok){try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t);ok=true;}}catch(e){}}
+  return ok;
 }
-function hasPending(){return !!(_Q&&_Q.length);}
-function sendPending(){
-  if(!hasPending())return 0;
-  var b=_Q.slice(0,18),n=0;_Q=_Q.slice(18);
-  b.forEach(function(c){_I++;__ljSend(_H+' '+_I+'/'+_N+'\n'+c);n++;});
-  toast(_Q.length?('已发 '+n+' 条 · 再点主按钮继续'):('已全部发送（'+_I+'/'+_N+'）'));
-  return n;
+function ljSave(t,nm){
+  try{var b=new Blob([t],{type:'text/plain;charset=utf-8'}),a=document.createElement('a');
+  a.href=URL.createObjectURL(b);a.download=nm;document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(a.href);},1500);}catch(e){}
 }
+function ljSay(m){
+  var g=(typeof window!=='undefined')?window.__ljSend:null;
+  if(typeof g==='function'){try{return g(m);}catch(e){}}
+  if(typeof sendPrompt==='function'){try{sendPrompt(m);return true;}catch(e){}}
+  return false;
+}
+/* 面板名（用于回传文件名）：从 head 标签取「领域」段，如 【剧本·确认】→ 剧本 */
+function ljTag(head){var s=String(head||'回传').replace(/^【/,'');var i=s.indexOf('】');if(i>=0)s=s.slice(0,i);return s.split('·')[0]||'回传';}
 function sendChunks(head,lines){
-  if(hasPending()){return sendPending();}
-  var cs=chunkText(lines);if(!cs.length)return 0;
-  _H=head;_N=cs.length;_I=0;
-  var first=cs.slice(0,18);
-  _Q=cs.slice(18);
-  first.forEach(function(c){_I++;__ljSend(head+(_N>1?' '+_I+'/'+_N:'')+'\n'+c);});
-  return first.length;
+  var arr=(lines||[]).map(function(x){return String(x==null?'':x);});
+  if(!arr.length)return 0;
+  var t=head+'\n'+arr.join('\n');
+  var nm=ljTag(head)+'_回传.txt';
+  var ok=ljCopy(t);ljSave(t,nm);
+  var msg=head+'#'+ljFp(t)+' · '+t.length+'字 · 全文＝'+(ok?'剪贴板／':'')+nm;
+  var sent=ljSay(msg);
+  if(!sent){try{if(typeof toast==='function')toast('未能自动发送 · 请把这条发我：'+msg);}catch(e){}}
+  return 1;
 }
 
 /* ── 回传 ── */
@@ -711,7 +718,7 @@ function confirmAll(){
 function submit(){
   if(hasPending()){sendPending();return;}
   if(SENT)return;
-  if(typeof sendPrompt!=='function'){toast('当前环境不支持发送 · 回传预览已保留');return;}
+  if(typeof sendPrompt!=='function'&&typeof ljSay!=='function'){toast('当前环境不支持发送 · 回传预览已保留');return;}
   SENT=true;ovl.classList.remove('on');
   var head='【项目设计·'+(hasCustom()?'优化':'确认')+'】';
   var n=sendChunks(head,OUTLINES);
@@ -719,8 +726,8 @@ function submit(){
 }
 function closeM(){ovl.classList.remove('on');}
 function toast(t){tst.textContent=t;tst.classList.add('on');clearTimeout(tst._h);tst._h=setTimeout(function(){tst.classList.remove('on');},2200);}
-function skip(){if(SENT)return;SENT=true;if(typeof sendPrompt==='function')__ljSend('【项目设计·跳过】AI 按优选完成项目设计，直接推进故事本（p3）');}
-function up(){if(SENT)return;try{reset();}catch(e){}SENT=true;if(typeof sendPrompt==='function')__ljSend('【项目设计·上一级】返回话题选择门（B1）｜本面板已清空并初始化；待 B1 确认新话题后，按新内容重新做项目设计（重选话题）');}
+function skip(){if(SENT)return;SENT=true;if(typeof sendPrompt==='function')ljSay('【项目设计·跳过】AI 按优选完成项目设计，直接推进故事本（p3）');}
+function up(){if(SENT)return;try{reset();}catch(e){}SENT=true;if(typeof sendPrompt==='function')ljSay('【项目设计·上一级】返回话题选择门（B1）｜本面板已清空并初始化；待 B1 确认新话题后，按新内容重新做项目设计（重选话题）');}
 
 renderAll();updMain();
 ROOT.addEventListener('click',function(e){

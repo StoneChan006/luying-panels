@@ -260,39 +260,47 @@ function traitPop(ri,o){var cur=POP.cur||'',M={'女声':'f','男声':'m','通用
 function gpickSet(v){var k=(POP.gp&&POP.gp.gi>0)?POP.gp.list[POP.gp.gi].k:POP.k;if(!k)return;var same=(k===POP.k);var f=findF(POP.ri,k);if(f){if(!same){if(f.multi){f.vals=[v];}else{f.val=v;}}else if(POP.vi<0){f.val=v;}else{if(!f.vals)f.vals=[v];else f.vals[POP.vi]=v;}}else if(ALT_DEF[k]){var r=S.grid[POP.ri];if(!r.alt)r.alt={};r.alt[k]=v;if(!r.alt._t)r.alt._t={};r.alt._t[k]=1;}closePop();renderAll();}
 function gset(ri,k,oi){if(S.sent)return;pushUndo();var r=S.grid[ri];if(ALT_DEF[k]){if(!r.alt)r.alt={};r.alt[k]=ALT_DEF[k][oi];}else{var fd=(r.fields||[]).filter(function(x){return x.k===k;})[0];if(fd)fd.val=fd.options[oi];}renderAll();}
 function gsetText(ri,k,v){if(S.sent)return;var r=S.grid[ri];if(ALT_DEF[k]){if(!r.alt)r.alt={};r.alt[k]=v;return;}var fd=(r.fields||[]).filter(function(x){return x.k===k;})[0];if(fd)fd.val=v;else{if(!r.alt)r.alt={};r.alt[k]=v;}if(k==='intro'){if(!S.roles[ri])S.roles[ri]={};S.roles[ri].intro=v;}if(k==='age'){if(!S.roles[ri])S.roles[ri]={};S.roles[ri].ageT=v;}}
-function chunkSend(head,lines){if(hasPending()){sendPending();return true;}if(S.sent)return false;if(typeof sendPrompt!=='function'){return false;}var n=sendChunks(head,lines);if(hasPending()){toast('已发 '+n+' 条 · 再点主按钮继续');renderAll();return true;}S.sent=true;toast('已提交回传'+(n>1?'（'+n+' 条）':''));renderAll();return true;}function back(){if(S.sent)return;if(DATA.src==='B4'){chunkSend('【E1·返回剧本】',['回 B4 剧本面板：E1 角色卡不落档（不改系列本 3.1），按 B4 既有值重渲剧本面板，形象高阶保持开。']);return;}chunkSend('【E1·返回系列卡】',['回 B0 系列卡「主体 ／ 角色建档」：重渲 B0 系列卡，保留已选系列、角色勾选与制作方式。']);}
-/* ── 分条切块（全库唯一实现）：单条 ≤430（含 head 前缀后仍 <450）· 行内超长硬切 ── */
-function chunkText(lines){
-  var MAX=430,cs=[],cur='';
-  function fl(){if(cur){cs.push(cur);cur='';}}
-  (lines||[]).forEach(function(l){
-    l=String(l==null?'':l);
-    var seg=(l.length>MAX)?(l.match(new RegExp('.{1,'+MAX+'}','g'))||[l]):[l];
-    seg.forEach(function(p){if(cur&&cur.length+p.length+1>MAX)fl();cur+=(cur?'\n':'')+p;});
-  });
-  fl();return cs;
+function chunkSend(head,lines){if(hasPending()){sendPending();return true;}if(S.sent)return false;if(typeof sendPrompt!=='function'&&typeof ljSay!=='function'){return false;}var n=sendChunks(head,lines);if(hasPending()){toast('已发 '+n+' 条 · 再点主按钮继续');renderAll();return true;}S.sent=true;toast('已提交回传'+(n>1?'（'+n+' 条）':''));renderAll();return true;}function back(){if(S.sent)return;if(DATA.src==='B4'){chunkSend('【E1·返回剧本】',['回 B4 剧本面板：E1 角色卡不落档（不改系列本 3.1），按 B4 既有值重渲剧本面板，形象高阶保持开。']);return;}chunkSend('【E1·返回系列卡】',['回 B0 系列卡「主体 ／ 角色建档」：重渲 B0 系列卡，保留已选系列、角色勾选与制作方式。']);}
+/* ── 回传＝指针消息（与 B5 同源 · 2026-11-15）：全文写剪贴板 + 存 <面板>_回传.txt，消息只发一行指针 ── */
+var _Q=null,_H='',_N=0,_I=0;
+function hasPending(){return false;}
+function sendPending(){return 0;}
+function ljFp(t){var h=2166136261;for(var i=0;i<t.length;i++){h=Math.imul(h^t.charCodeAt(i),16777619)>>>0;}return ('0000000'+h.toString(16)).slice(-8);}
+function ljCopy(t){
+  var ok=false,ta=document.createElement('textarea');
+  try{ta.value=t;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;left:-9999px;top:0';document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,t.length);ok=document.execCommand('copy');}catch(e){ok=false;}
+  if(ta.parentNode)ta.parentNode.removeChild(ta);
+  if(!ok){try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t);ok=true;}}catch(e){}}
+  return ok;
 }
-function hasPending(){return !!(_Q&&_Q.length);}
-function sendPending(){
-  if(!hasPending())return 0;
-  var b=_Q.slice(0,18),n=0;_Q=_Q.slice(18);
-  b.forEach(function(c){_I++;__ljSend(_H+' '+_I+'/'+_N+'\n'+c);n++;});
-  toast(_Q.length?('已发 '+n+' 条 · 再点主按钮继续'):('已全部发送（'+_I+'/'+_N+'）'));
-  return n;
+function ljSave(t,nm){
+  try{var b=new Blob([t],{type:'text/plain;charset=utf-8'}),a=document.createElement('a');
+  a.href=URL.createObjectURL(b);a.download=nm;document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(a.href);},1500);}catch(e){}
 }
+function ljSay(m){
+  var g=(typeof window!=='undefined')?window.__ljSend:null;
+  if(typeof g==='function'){try{return g(m);}catch(e){}}
+  if(typeof sendPrompt==='function'){try{sendPrompt(m);return true;}catch(e){}}
+  return false;
+}
+/* 面板名（用于回传文件名）：从 head 标签取「领域」段，如 【剧本·确认】→ 剧本 */
+function ljTag(head){var s=String(head||'回传').replace(/^【/,'');var i=s.indexOf('】');if(i>=0)s=s.slice(0,i);return s.split('·')[0]||'回传';}
 function sendChunks(head,lines){
-  if(hasPending()){return sendPending();}
-  var cs=chunkText(lines);if(!cs.length)return 0;
-  _H=head;_N=cs.length;_I=0;
-  var first=cs.slice(0,18);
-  _Q=cs.slice(18);
-  first.forEach(function(c){_I++;__ljSend(head+(_N>1?' '+_I+'/'+_N:'')+'\n'+c);});
-  return first.length;
+  var arr=(lines||[]).map(function(x){return String(x==null?'':x);});
+  if(!arr.length)return 0;
+  var t=head+'\n'+arr.join('\n');
+  var nm=ljTag(head)+'_回传.txt';
+  var ok=ljCopy(t);ljSave(t,nm);
+  var msg=head+'#'+ljFp(t)+' · '+t.length+'字 · 全文＝'+(ok?'剪贴板／':'')+nm;
+  var sent=ljSay(msg);
+  if(!sent){try{if(typeof toast==='function')toast('未能自动发送 · 请把这条发我：'+msg);}catch(e){}}
+  return 1;
 }
 var _Q=null,_H='',_N=0,_I=0;
 function buildLines(fields){var out=[];(fields||[]).forEach(function(f){if(!f.type||f.type==='grp')return;if(f.type==='multi'){var _mv=(S.multi[f.k]||[]);var _ms=_mv.length?_mv.join('；'):'未选';if(f.k==='dur'&&_mv.length){var _pf=S.single.filmtype?S.single.filmtype+' ':'';_ms=_pf+_mv.join('；');}out.push(f.label+'='+_ms);if(S.cst[f.k])out.push('自定义'+f.label+'='+S.cst[f.k]);}else if(f.type==='tags'){var _tg=(S.multi[f.k]||[]);var _ts=_tg.length?_tg.join('；'):'未选';if(f.k==='dur'&&_tg.length){var _dp=S.single.filmtype?S.single.filmtype+' ':'';_ts=_dp+_tg.join('；');}out.push(f.label+'='+_ts);}else if(f.type==='dualtags'){var _fx=(S.multi[f.k+'x']||[]);var _dv=(S.single[f.k]||'未选');out.push(f.label+'='+_dv+' × '+(_fx.length?_fx.join(' + '):'未选'));}else if(f.type==='single'){var _sv=S.single[f.k]||'';if(!_sv&&f.opt)return;if(f.k==='dur'&&_sv){var _dp=S.single.filmtype?S.single.filmtype+' ':'';_sv=_dp+_sv;}out.push(f.label+'='+(_sv||'未选'));if(S.cst[f.k])out.push('自定义'+f.label+'='+S.cst[f.k]);}else if(f.type==='text'){var _tv=S.text[f.k];out.push(f.label+'='+(_tv||'（未填）'));}else if(f.type==='roles'){var mode=S.pr.mode||'';var ex='';if(S.pr.edit){var _ed=Object.keys(S.pr.edits||{});if(_ed.length)out.push('修改角色='+_ed.map(function(n){return n+'（更新设定图：'+(S.pr.edits[n].regen?'是':'否')+'）';}).join('／'));}if(S.pr.img)ex+=' · 设定图：'+(S.pr.path||'（待补）');if(mode){var _m=(mode==='创建角色')?mode+'（'+(S.pr.count||1)+' 个）':mode;out.push(f.label+'='+_m+ex);}}else if(f.type==='rolegrid'){if(!(S.grid||[]).length)return;var _fl=S.roles||[],_cut=0,_newMode=(S.pr.mode==='创建角色');S.grid.forEach(function(r,gi){var ro=_fl[gi]||{};if(ro.fold){_cut++;return;}var fm=(ro.fm||['人形','肉体','无','无','人']).slice();var humanLike=(fm[0]==='人形'&&['肉体','生物体','植物体','生化体','无'].indexOf(fm[1])>=0);var anthro=!humanLike&&!!ro.anthro;var vis={gender:1,age:1,intro:1};['face','shape','build','skin','makeup','hairS','hairL','hairT','hairF','clothS','clothK','clothB','clothA'].forEach(function(k){if(humanLike)vis[k]=1;});vis.featOut=1;if(humanLike||anthro)['rp','trait','cxP','cxN','capP','capL','capC','feat','lang1','vRange','vTimbre','vPhonation','vSpeed','vVolume','vTrait','vState1','vState2','catch'].forEach(function(k){vis[k]=1;});var gv=function(k){var x=(r.fields||[]).filter(function(y){return y.k===k;})[0];if(!x||!vis[k])return null;if(x.multi){var a=(x.vals&&x.vals.length)?x.vals.filter(function(v){return v&&v!=='';}):[];return a.length?a.join('／'):'（空）';}var v=x.val;return(v==null||v==='')?((x.type==='text')?'（空）':''):v;};var _fc=fm.filter(function(v){return v&&v!=='无';});var _old=(ro.tpl!=null)?!!ro.tpl:!_newMode;var ps=[r.no+'｜'+ensureName(gi)+'｜改档='+(_old?'修改':'新建')+'｜'+(fm||[]).join(' × ')];ps.push('性别='+(gv('gender')||''),'年龄='+(gv('age')||''),'出演='+(ro.cast||'主演'),'简介='+(gv('intro')||'（空）'));if(humanLike){['面孔:face','脸型:shape','身材:build','肤色:skin','妆造:makeup'].forEach(function(x){var a=x.split(':');if(gv(a[1]))ps.push(a[0]+'='+gv(a[1]));});var jn=function(a){return(a.length&&a.every(function(x){return x===a[0];}))?a[0]:a.join(' × ');};var hh=['hairS','hairL','hairT','hairF'].map(gv).filter(function(v){return v;});if(hh.length)ps.push('发型='+jn(hh));var cc=['clothS','clothK','clothB'].map(gv).filter(function(v){return v;});if(cc.length)ps.push('服装='+jn(cc));if(gv('clothA'))ps.push('配饰挂件='+gv('clothA'));}else{var A=r.alt||{},AD={skinT:'金属灰',pose:'站立行走',limb:'2 肢',gloss:'哑光',joint:'外露关节',det:'编号牌'};ps.push('造型=皮肤 '+(A.skinT||AD.skinT)+' ｜ 姿态 '+(A.pose||AD.pose)+' ｜ 肢体 '+(A.limb||AD.limb)+' ｜ 光泽 '+(A.gloss||AD.gloss)+' ｜ 关节 '+(A.joint||AD.joint)+' ｜ 细节 '+(A.det||AD.det));if(!anthro)ps.push('拟人化=关（无个性／声音）');}if(gv('featOut'))ps.push('更多特征='+gv('featOut'));if(humanLike||anthro){if(gv('rp'))ps.push('人设='+gv('rp'));if(gv('cxP'))ps.push('反差='+gv('cxP')+' × '+(gv('cxN')||''));var lv=function(k){var x=(r.fields||[]).filter(function(y){return y.k===k;})[0]||{};return(x.val||'')+'·'+((x.lv==null)?capLvDef(k,x.val):x.lv);};if(gv('capP'))ps.push('能力=技能 '+lv('capP')+' × 生活 '+lv('capL')+' × 认知 '+lv('capC'));if(gv('trait'))ps.push('气质='+gv('trait'));if(gv('feat'))ps.push('更多特点='+gv('feat'));var vv=['vRange','vTimbre','vPhonation','vSpeed','vVolume'].map(gv);if(vv[0])ps.push('声纹='+vv.slice(0,3).join(' × ')+' ｜ '+vv.slice(3).join(' × '));if(gv('vTrait'))ps.push('特质='+gv('vTrait'));if(gv('vState1'))ps.push('声线反差=日常 '+gv('vState1')+' → 上头 '+(gv('vState2')||''));if(gv('lang1'))ps.push('语言='+gv('lang1'));if(gv('catch')!=null)ps.push('口头禅='+gv('catch'));}if(ro.note&&String(ro.note).trim())ps.push('备注='+String(ro.note).replace(/\r?\n+/g,' ／ '));out.push(ps.join(' ｜ '));});if(_cut)out.push('已删减='+_cut+' 张卡（其字段不回传）');}});return out;}
 
-function confirmAll(){if(S.done)return;var out=['▪ 角色卡（E1）· 创建 ／ 修改'];var _rl=buildLines(DATA.content.fields);_rl.forEach(function(l){out.push(l);});moB.innerHTML=out.map(function(l){return'<div class="ljOl">'+esc(l)+'</div>';}).join('');OUTLINES=out;ovl.classList.add('on');}var OUTLINES=[];function submit(){if(hasPending()){sendPending();return;}if(S.done)return;var _hasOld=(S.pr.mode!=='创建角色')||(S.grid||[]).some(function(r){return r.tpl===true;});var _tag=_hasOld?'【角色卡·改档】':'【角色卡·建档】';if(typeof sendPrompt!=='function'){return;}ovl.classList.remove('on');var n=sendChunks(_tag,OUTLINES);if(hasPending()){toast('已发 '+n+' 条 · 再点主按钮继续');return;}S.done=true;S.sent=true;toast('建档回传已提交'+(n>1?'（'+n+' 条）':''));renderAll();}
+function confirmAll(){if(S.done)return;var out=['▪ 角色卡（E1）· 创建 ／ 修改'];var _rl=buildLines(DATA.content.fields);_rl.forEach(function(l){out.push(l);});moB.innerHTML=out.map(function(l){return'<div class="ljOl">'+esc(l)+'</div>';}).join('');OUTLINES=out;ovl.classList.add('on');}var OUTLINES=[];function submit(){if(hasPending()){sendPending();return;}if(S.done)return;var _hasOld=(S.pr.mode!=='创建角色')||(S.grid||[]).some(function(r){return r.tpl===true;});var _tag=_hasOld?'【角色卡·改档】':'【角色卡·建档】';if(typeof sendPrompt!=='function'&&typeof ljSay!=='function'){return;}ovl.classList.remove('on');var n=sendChunks(_tag,OUTLINES);if(hasPending()){toast('已发 '+n+' 条 · 再点主按钮继续');return;}S.done=true;S.sent=true;toast('建档回传已提交'+(n>1?'（'+n+' 条）':''));renderAll();}
 function closeM(){ovl.classList.remove('on');}
 function toast(t){tst.textContent=t;tst.classList.add('on');clearTimeout(tst._h);tst._h=setTimeout(function(){tst.classList.remove('on');},2200);}
 /* 预选兜底：人类卡空字段补「推理首选」，面板不出现空槽（有值的不动 → 修改角色安全） */

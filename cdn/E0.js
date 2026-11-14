@@ -667,8 +667,8 @@ S.roles=[];S.pr.mode='';S.pr.count=1;S.pr.edit=true;S.pr.edits={};S.pr.meta={};S
 renderAll();toast('修改档案 · 已按 ID 配置预选');}
 function newSeries(){S.mode='new';if(S.sent)return;pushUndo();S.view='project';S.look=(DATA.project&&DATA.project.look)||'影视';renderAll();}
 function back(){if(S.sent)return;
-if(typeof sendPrompt!=='function'){toast('预览模式 · 返回选择页');return;}
-S.sent=true;__ljSend('【B0·返回选择页】\n重渲 B0 选择页 · 项目系列（保留已扫描的系列列表）');}
+if(typeof sendPrompt!=='function'&&typeof ljSay!=='function'){toast('预览模式 · 返回选择页');return;}
+S.sent=true;ljSay('【B0·返回选择页】\n重渲 B0 选择页 · 项目系列（保留已扫描的系列列表）');}
 function buildLines(fields){
 var out=[],_lk=(S.look==='媒体')?'媒体':'影视';
 (fields||[]).forEach(function(f){
@@ -717,38 +717,46 @@ if(S.pr.mode==='创建角色'||S.pr.edit)out.push('下一步=E1 角色卡（继�
 moB.innerHTML=out.map(function(l){return '<div class="ljOl">'+esc(l)+'</div>';}).join('');
 OUTLINES=out;
 ovl.classList.add('on');}
-/* ── 分条切块（全库唯一实现）：单条 ≤430（含 head 前缀后仍 <450）· 行内超长硬切 ── */
-function chunkText(lines){
-  var MAX=430,cs=[],cur='';
-  function fl(){if(cur){cs.push(cur);cur='';}}
-  (lines||[]).forEach(function(l){
-    l=String(l==null?'':l);
-    var seg=(l.length>MAX)?(l.match(new RegExp('.{1,'+MAX+'}','g'))||[l]):[l];
-    seg.forEach(function(p){if(cur&&cur.length+p.length+1>MAX)fl();cur+=(cur?'\n':'')+p;});
-  });
-  fl();return cs;
+/* ── 回传＝指针消息（与 B5 同源 · 2026-11-15）：全文写剪贴板 + 存 <面板>_回传.txt，消息只发一行指针 ── */
+var _Q=null,_H='',_N=0,_I=0;
+function hasPending(){return false;}
+function sendPending(){return 0;}
+function ljFp(t){var h=2166136261;for(var i=0;i<t.length;i++){h=Math.imul(h^t.charCodeAt(i),16777619)>>>0;}return ('0000000'+h.toString(16)).slice(-8);}
+function ljCopy(t){
+  var ok=false,ta=document.createElement('textarea');
+  try{ta.value=t;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;left:-9999px;top:0';document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,t.length);ok=document.execCommand('copy');}catch(e){ok=false;}
+  if(ta.parentNode)ta.parentNode.removeChild(ta);
+  if(!ok){try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t);ok=true;}}catch(e){}}
+  return ok;
 }
-function hasPending(){return !!(_Q&&_Q.length);}
-function sendPending(){
-  if(!hasPending())return 0;
-  var b=_Q.slice(0,18),n=0;_Q=_Q.slice(18);
-  b.forEach(function(c){_I++;__ljSend(_H+' '+_I+'/'+_N+'\n'+c);n++;});
-  toast(_Q.length?('已发 '+n+' 条 · 再点主按钮继续'):('已全部发送（'+_I+'/'+_N+'）'));
-  return n;
+function ljSave(t,nm){
+  try{var b=new Blob([t],{type:'text/plain;charset=utf-8'}),a=document.createElement('a');
+  a.href=URL.createObjectURL(b);a.download=nm;document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(a.href);},1500);}catch(e){}
 }
+function ljSay(m){
+  var g=(typeof window!=='undefined')?window.__ljSend:null;
+  if(typeof g==='function'){try{return g(m);}catch(e){}}
+  if(typeof sendPrompt==='function'){try{sendPrompt(m);return true;}catch(e){}}
+  return false;
+}
+/* 面板名（用于回传文件名）：从 head 标签取「领域」段，如 【剧本·确认】→ 剧本 */
+function ljTag(head){var s=String(head||'回传').replace(/^【/,'');var i=s.indexOf('】');if(i>=0)s=s.slice(0,i);return s.split('·')[0]||'回传';}
 function sendChunks(head,lines){
-  if(hasPending()){return sendPending();}
-  var cs=chunkText(lines);if(!cs.length)return 0;
-  _H=head;_N=cs.length;_I=0;
-  var first=cs.slice(0,18);
-  _Q=cs.slice(18);
-  first.forEach(function(c){_I++;__ljSend(head+(_N>1?' '+_I+'/'+_N:'')+'\n'+c);});
-  return first.length;
+  var arr=(lines||[]).map(function(x){return String(x==null?'':x);});
+  if(!arr.length)return 0;
+  var t=head+'\n'+arr.join('\n');
+  var nm=ljTag(head)+'_回传.txt';
+  var ok=ljCopy(t);ljSave(t,nm);
+  var msg=head+'#'+ljFp(t)+' · '+t.length+'字 · 全文＝'+(ok?'剪贴板／':'')+nm;
+  var sent=ljSay(msg);
+  if(!sent){try{if(typeof toast==='function')toast('未能自动发送 · 请把这条发我：'+msg);}catch(e){}}
+  return 1;
 }
 var _Q=null,_H='',_N=0,_I=0;
 var OUTLINES=[];
 function submit(){if(hasPending()){sendPending();return;}if(S.done)return;var _tag=(S.mode==='edit')?'【系列·修改档案】':'【项目系列·建档】';
-if(typeof sendPrompt!=='function'){return;}
+if(typeof sendPrompt!=='function'&&typeof ljSay!=='function'){return;}
 S.done=true;S.sent=true;ovl.classList.remove('on');
 var _mk=S.single.make||'';var _a2=(_mk==='实拍制作'||_mk==='AI生成')?('\n执行分支='+_mk+'（跳过 A2 门）'):'\n执行分支=未定（A2 门必弹）';OUTLINES.push(_a2);
 var n=sendChunks(_tag,OUTLINES);

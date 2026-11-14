@@ -653,39 +653,46 @@ restoreState();renderAll();}
 function undo(){var ae=document.activeElement;if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'))return;if(!S.undo.length)return;
 var x=S.undo.pop();S.pools=cp(x.pools);S.slots=cp(x.slots);S.cst=cp(x.cst);S.manual=cp(x.manual);S.smanual=cp(x.smanual);S.info=cp(x.info);S.tabA=cp(x.tabA||{});
 renderAll();updMain();}
-/* ── 分条发送（全库唯一实现）：单条 ≤430（含 head 前缀后仍 <450）· 行内超长硬切 · 单轮 ≤18 条；超出转待发队列，再点主按钮发下一批 ── */
+/* ── 回传＝指针消息（与 B5 同源 · 2026-11-15）：全文写剪贴板 + 存 <面板>_回传.txt，消息只发一行指针 ── */
 var _Q=null,_H='',_N=0,_I=0;
-function chunkText(lines){
-  var MAX=430,cs=[],cur='';
-  function fl(){if(cur){cs.push(cur);cur='';}}
-  (lines||[]).forEach(function(l){
-    l=String(l==null?'':l);
-    var seg=(l.length>MAX)?(l.match(new RegExp('.{1,'+MAX+'}','g'))||[l]):[l];
-    seg.forEach(function(p){if(cur&&cur.length+p.length+1>MAX)fl();cur+=(cur?'\n':'')+p;});
-  });
-  fl();return cs;
+function hasPending(){return false;}
+function sendPending(){return 0;}
+function ljFp(t){var h=2166136261;for(var i=0;i<t.length;i++){h=Math.imul(h^t.charCodeAt(i),16777619)>>>0;}return ('0000000'+h.toString(16)).slice(-8);}
+function ljCopy(t){
+  var ok=false,ta=document.createElement('textarea');
+  try{ta.value=t;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;left:-9999px;top:0';document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,t.length);ok=document.execCommand('copy');}catch(e){ok=false;}
+  if(ta.parentNode)ta.parentNode.removeChild(ta);
+  if(!ok){try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t);ok=true;}}catch(e){}}
+  return ok;
 }
-function hasPending(){return !!(_Q&&_Q.length);}
-function sendPending(){
-  if(!hasPending())return 0;
-  var b=_Q.slice(0,18),n=0;_Q=_Q.slice(18);
-  b.forEach(function(c){_I++;__ljSend(_H+' '+_I+'/'+_N+'\n'+c);n++;});
-  toast(_Q.length?('已发 '+n+' 条 · 再点主按钮继续'):('已全部发送（'+_I+'/'+_N+'）'));
-  return n;
+function ljSave(t,nm){
+  try{var b=new Blob([t],{type:'text/plain;charset=utf-8'}),a=document.createElement('a');
+  a.href=URL.createObjectURL(b);a.download=nm;document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(a.href);},1500);}catch(e){}
 }
+function ljSay(m){
+  var g=(typeof window!=='undefined')?window.__ljSend:null;
+  if(typeof g==='function'){try{return g(m);}catch(e){}}
+  if(typeof sendPrompt==='function'){try{sendPrompt(m);return true;}catch(e){}}
+  return false;
+}
+/* 面板名（用于回传文件名）：从 head 标签取「领域」段，如 【剧本·确认】→ 剧本 */
+function ljTag(head){var s=String(head||'回传').replace(/^【/,'');var i=s.indexOf('】');if(i>=0)s=s.slice(0,i);return s.split('·')[0]||'回传';}
 function sendChunks(head,lines){
-  if(hasPending()){return sendPending();}
-  var cs=chunkText(lines);if(!cs.length)return 0;
-  _H=head;_N=cs.length;_I=0;
-  var first=cs.slice(0,18);
-  _Q=cs.slice(18);
-  first.forEach(function(c){_I++;__ljSend(head+(_N>1?' '+_I+'/'+_N:'')+'\n'+c);});
-  return first.length;
+  var arr=(lines||[]).map(function(x){return String(x==null?'':x);});
+  if(!arr.length)return 0;
+  var t=head+'\n'+arr.join('\n');
+  var nm=ljTag(head)+'_回传.txt';
+  var ok=ljCopy(t);ljSave(t,nm);
+  var msg=head+'#'+ljFp(t)+' · '+t.length+'字 · 全文＝'+(ok?'剪贴板／':'')+nm;
+  var sent=ljSay(msg);
+  if(!sent){try{if(typeof toast==='function')toast('未能自动发送 · 请把这条发我：'+msg);}catch(e){}}
+  return 1;
 }
 var SENT=false,OUTLINES=[];
 function updMain(){var mb=ROOT.querySelector('#b3main');if(!mb)return;var ic='<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';mb.innerHTML=ic+'<span id="b3mainT">确认</span>';mb.title='采纳当前产出 · 定稿并推进（自定义值一并回传）';mb.classList.remove('gold');}
 function submit(){if(hasPending()){sendPending();return;}if(SENT)return;
-if(typeof sendPrompt!=='function'){toast('当前环境不支持发送 · 回传预览已保留');return;}
+if(typeof sendPrompt!=='function'&&typeof ljSay!=='function'){toast('当前环境不支持发送 · 回传预览已保留');return;}
 SENT=true;ovl.classList.remove('on');
 var head='【故事设定·确认】';
 var n=sendChunks(head,OUTLINES);
@@ -733,8 +740,8 @@ OUTLINES=out;
 ovl.classList.add('on');}
 function closeM(){ovl.classList.remove('on');}
 function toast(t){tst.textContent=t;tst.classList.add('on');clearTimeout(tst._h);tst._h=setTimeout(function(){tst.classList.remove('on');},2200);}
-function skip(){if(SENT)return;SENT=true;if(typeof sendPrompt==='function')__ljSend('【故事设定·跳过】AI 按优选完成全部选择，直接推进至剧本定稿端产出（随后渲染剧本面板）');}
-function up(){if(SENT)return;var vals=collect();SENT=true;if(typeof sendPrompt==='function')__ljSend('【故事设定·上一级】回项目设计（B2）｜按下列当前选中值重渲 B2（保持已选 · 不重置）\n'+vals.join('\n'));}
+function skip(){if(SENT)return;SENT=true;if(typeof sendPrompt==='function')ljSay('【故事设定·跳过】AI 按优选完成全部选择，直接推进至剧本定稿端产出（随后渲染剧本面板）');}
+function up(){if(SENT)return;var vals=collect();SENT=true;if(typeof sendPrompt==='function')ljSay('【故事设定·上一级】回项目设计（B2）｜按下列当前选中值重渲 B2（保持已选 · 不重置）\n'+vals.join('\n'));}
 renderAll();updMain();
 ROOT.addEventListener('click',function(e){if(e.target&&e.target.isConnected===false)return;   /* 弹层刚被重建 · 被点元素已脱离文档 */
 if(pop.classList.contains('on')&&!e.target.closest('.ljPop')&&!e.target.closest('.ljSV'))closePop();});
