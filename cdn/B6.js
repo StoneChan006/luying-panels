@@ -78,10 +78,21 @@ function hostSend(txt){var f=null;
  if(!f)return false;try{f(txt);return true;}catch(e){return false;}}
 /* 宿主桥：本面板常被塞进 iframe，`sendPrompt` 只在顶层 window 上，挂一份到本地，其它回传也一并能用 */
 try{if(typeof sendPrompt!=='function'&&window.parent&&window.parent!==window&&typeof window.parent.sendPrompt==='function'){window.sendPrompt=function(t){return window.parent.sendPrompt(t);};}}catch(e){}
+function bridgeURL(p){var b=DATA.bridge||{};if(!b.url||!b.token)return '';
+ return b.url+'/reveal?t='+encodeURIComponent(b.token)+'&p='+encodeURIComponent(p);}
+function viaHost(path,n){if(hostSend('【封标·定位封面】'+path)){toast('定位指令已发出 · Finder 即将打开');}
+ else{toast('本机定位服务未启动 · 说一句「打开封面」我就开');}}
 function reveal(pi){if(SENT)return;var p=DATA.platforms[pi];var sel=S.cvp[pi];var files=(sel&&sel.length)?sel:(p.cover||[]);var n=files[0];
 var path=n?((DATA.coverDir||'')+n):(DATA.coverDir||'');if(!path)return;
-if(hostSend('【封标·定位封面】'+path)){toast('已在 Finder 打开并选中 · '+(n||'封面文件夹'));}
-else{cpRaw(path);toast('当前环境接不到宿主 · 路径已复制');}}
+var u=bridgeURL(path);
+if(!u){viaHost(path,n);return;}
+/* 本机 open_bridge：直接 open -R（打开文件夹并选中该文件），不经对话 */
+var ctl=window.AbortController?new AbortController():null;
+var tm=setTimeout(function(){try{ctl&&ctl.abort();}catch(e){}},1500);
+fetch(u,{cache:'no-store',signal:ctl?ctl.signal:undefined}).then(function(r){return r.json();}).then(function(j){
+ clearTimeout(tm);
+ if(j&&j.ok){toast('已在 Finder 打开并选中 · '+(n||'封面'));}else{viaHost(path,n);}
+}).catch(function(){clearTimeout(tm);viaHost(path,n);});}
 var CV={pi:0,files:[],urls:[],sel:{}};
 var cvOvl=ROOT.querySelector('.ljCvOvl'),cvG=ROOT.querySelector('.ljCvG'),cvP=ROOT.querySelector('.ljCvP');
 cvP.textContent=DATA.coverDir||'';
