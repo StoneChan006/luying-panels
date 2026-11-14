@@ -122,12 +122,15 @@ pop.style.top=T+'px';}
 function closePop(){pop.classList.remove('on');}
 function sw(pi,f,el){if(SENT||hasSel())return;POP.pi=pi;POP.f=f;var p=DATA.platforms[pi];
 var list=p.tc||[];var cur=val(pi,f);
-var html=list.map(function(v,i){return '<div class="ljPc'+(v===cur?' on':'')+'" onclick="LJ.psel('+i+')"><span>'+esc(v)+'</span></div>';}).join('');
+var html=list.map(function(v,i){var g=(i<3)?('A'+(i+1)):('B'+(i-2));return '<div class="ljPc'+(v===cur?' on':'')+'" onclick="LJ.psel('+i+')"><span style="color:#5E6B78;font-size:11px;margin-right:6px">'+g+'</span><span>'+esc(v)+'</span></div>';}).join('');
 html+='<div class="ljPc"><input id="b6pi" placeholder="自定义…" style="background:transparent;border:none;outline:none;color:#C9D4DE;font-size:12.5px;width:100%;font-family:inherit" onkeydown="LJ.pek(event)"></div>';
 openPopAt(el,html);
 var inp=pop.querySelector('#b6pi');if(inp)setTimeout(function(){inp.focus();},0);}
 function psel(i){if(hasSel())return;var p=DATA.platforms[POP.pi];var list=p.tc||[];if(!list[i])return;
-pushUndo();S.v[POP.pi+'__'+POP.f]=list[i];closePop();renderAll();}
+pushUndo();S.v[POP.pi+'__'+POP.f]=list[i];
+/* 标题与简介同组：选 B 组标题（第 4–6 条）时，简介同步切到 B 组，避免「B 的标题 + A 的简介」错配 */
+if(POP.f==='t'&&i>=3&&p.db){S.v[POP.pi+'__d']=p.db;toast('已切到 B 组标题＋B 组简介');}
+closePop();renderAll();}
 function pek(e){if(e.key==='Enter'||e.keyCode===13){e.preventDefault();var v=e.target.value.trim();if(v){pushUndo();S.v[POP.pi+'__'+POP.f]=v;closePop();renderAll();}}}
 function gsw(pi,ti,el){if(SENT||hasSel())return;POP.pi=pi;POP.f='g';POP.ti=ti;var p=DATA.platforms[pi];
 var pool=p.gc||[];var list=tagList(pi);var cur=list[ti]||'';
@@ -171,7 +174,8 @@ var SENT=false,OUTLINES=[];
 function confirmAll(){if(SENT)return;var out=[];
 DATA.platforms.forEach(function(p,pi){
 out.push('▪ '+p.name);
-out.push('标题＝'+val(pi,'t'));
+var _tt=val(pi,'t'),_ti=(p.tc||[]).indexOf(_tt),_tg=(_ti<0)?'自定义':((_ti<3)?('A'+(_ti+1)):('B'+(_ti-2)));
+out.push('标题＝'+_tt+'（'+_tg+'）');
 out.push('简介＝'+val(pi,'d'));
 out.push('标签＝'+tagList(pi).map(function(w){return '#'+w;}).join(' '));
 var sel=S.cvp[pi];
