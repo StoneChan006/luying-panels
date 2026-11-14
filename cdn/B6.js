@@ -71,9 +71,17 @@ function fb(){var ta=document.createElement('textarea');ta.value=txt;ta.style.cs
 try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){toast(msg);},fb);}else fb();}catch(e){fb();}}
 function cpRaw(txt){function fb(){var ta=document.createElement('textarea');ta.value=txt;ta.style.cssText='position:absolute;left:-9999px;top:0';document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand('copy');}catch(e){}document.body.removeChild(ta);toast(ok?'路径已复制':'复制失败 · 可手动选中');}
 try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){toast('路径已复制');},fb);}else fb();}catch(e){fb();}}
+function hostSend(txt){var f=null;
+ if(typeof sendPrompt==='function')f=sendPrompt;
+ if(!f){try{if(window.parent&&window.parent!==window&&typeof window.parent.sendPrompt==='function')f=window.parent.sendPrompt;}catch(e){}}
+ if(!f){try{if(window.top&&window.top!==window&&typeof window.top.sendPrompt==='function')f=window.top.sendPrompt;}catch(e){}}
+ if(!f)return false;try{f(txt);return true;}catch(e){return false;}}
+/* 宿主桥：本面板常被塞进 iframe，`sendPrompt` 只在顶层 window 上，挂一份到本地，其它回传也一并能用 */
+try{if(typeof sendPrompt!=='function'&&window.parent&&window.parent!==window&&typeof window.parent.sendPrompt==='function'){window.sendPrompt=function(t){return window.parent.sendPrompt(t);};}}catch(e){}
 function reveal(pi){if(SENT)return;var p=DATA.platforms[pi];var sel=S.cvp[pi];var files=(sel&&sel.length)?sel:(p.cover||[]);var n=files[0];
 var path=n?((DATA.coverDir||'')+n):(DATA.coverDir||'');if(!path)return;
-if(typeof sendPrompt==='function'){sendPrompt('【封标·定位封面】'+path);toast('已在 Finder 中打开');}else{cpRaw(path);}}
+if(hostSend('【封标·定位封面】'+path)){toast('已在 Finder 打开并选中 · '+(n||'封面文件夹'));}
+else{cpRaw(path);toast('当前环境接不到宿主 · 路径已复制');}}
 var CV={pi:0,files:[],urls:[],sel:{}};
 var cvOvl=ROOT.querySelector('.ljCvOvl'),cvG=ROOT.querySelector('.ljCvG'),cvP=ROOT.querySelector('.ljCvP');
 cvP.textContent=DATA.coverDir||'';
