@@ -227,7 +227,9 @@ if(f.c&&f.c.length){var wk='rf_'+it.k+'_'+ri+'_'+fi;W2[wk]={c:f.c.slice(),base:f
 if(it.groups)it.groups.forEach(function(g,gi){g.rows.forEach(function(r,ri){
 var _LS=(r.lines&&r.lines.length)?r.lines:(r.line?[r.line]:[]);
 _LS.forEach(function(ln){
-W2[ln.rw]={c:ln.rc||null,v:ln.rv||''};WOWN[ln.rw]=it.k;
+/* 角色候选＝本镜在场者；当前值不在候选里时并入首位（否则引擎会退回 rc[0]，把话安到别人头上） */
+var _rc=(ln.rc&&ln.rc.slice)?ln.rc.slice():[];if(ln.rv&&_rc.indexOf(ln.rv)<0)_rc.unshift(ln.rv);
+W2[ln.rw]={c:_rc.length?_rc:null,v:ln.rv||''};WOWN[ln.rw]=it.k;
 W2[ln.lw]={c:ln.lc||null,v:ln.lv||'',lang:true};WOWN[ln.lw]=it.k;
 W2[ln.tw]={c:(ln.byRole&&ln.byRole[ln.rv])||[ln.tv],v:ln.tv,roleV:ln.rv,roleKey:ln.rw,byRole:ln.byRole||{}};WOWN[ln.tw]=it.k;
  var _tk=ln.tw+'_t',_ak=ln.tw+'_a',_gk=ln.tw+'_g';
