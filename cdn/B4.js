@@ -369,6 +369,7 @@ ps.push('B5服装='+(_H.lib
 return;}
 if(f.g==='style'){ps.push('服装风格='+wval(fk));}   /* 回传用全名「服装风格」（面板标签仍简写「风格」） */
 else if(f.c&&f.c.length){ps.push(f.label+'='+wval(fk));}
+else if(f.label==='服装'){if(ro.noWear)ps.push('服装=无（角色库：无服装）');}
 else ps.push(f.label+'='+f.v);});
 
 return ps.join(' ｜ ');}
