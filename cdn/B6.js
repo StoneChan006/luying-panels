@@ -48,11 +48,10 @@ if(i<list.length-1)h+=' ';
 return h+'<button class="ljCp" onclick="LJ.cpy('+pi+',\'g\')" title="复制标签（含 #）">'+CP+'</button></div></div>';}
 function descHTML(pi){var k=pi+'__d';
 return '<div class="ljItem"><div class="ljIH"><span class="ljIN">简介</span></div><div class="ljTxb"><span class="ljEd" contenteditable="true" spellcheck="false" oninput="LJ.ed(\''+k+'\',this.innerText)">'+esc(val(pi,'d'))+'</span><button class="ljCp" onclick="LJ.cpy('+pi+',\'d\')" title="复制简介">'+CP+'</button></div></div>';}
-function coverHTML(pi){var p=DATA.platforms[pi];var sel=S.cvp[pi];
-var files=(sel&&sel.length)?sel:((p.cover&&p.cover.length)?p.cover:[]);
-var h='<div class="ljItem"><div class="ljIH"><span class="ljIN">封面</span></div>';
-h+='<div class="ljCvf">'+esc(DATA.coverDir||'')+'</div>';
-h+='<div class="ljCvf">'+(files.length?files.map(esc).join('　／　'):'（待生成）')+'</div></div>';return h;}
+function coverHTML(pi){var p=DATA.platforms[pi];var sel=S.cvp[pi];var files=(sel&&sel.length)?sel:(p.cover||[]);
+var h='<div class="ljItem"><div class="ljIH"><span class="ljIN">封面</span>';
+h+='<button class="ljFold" onclick="LJ.reveal('+pi+')" title="在 Finder 里打开封面文件夹并选中封面文件">'+FOLD+'打开文件</button>';
+h+='</div></div>';return h;}
 function blockHTML(p,pi){var h='<div class="ljSc"><div class="ljSh"><span class="ljSt">'+esc(p.name)+'</span>';
 if(p.link)h+='<a class="ljA" href="'+escAttr(p.link)+'" target="_blank" rel="noopener" title="新窗口打开发布入口">'+LK+'发布入口</a>';
 /* 规格小字（标题≤N字·标签N个·封面比例）只做校验，不上面板：2026-11-14 */
@@ -70,6 +69,11 @@ if(!txt){toast('内容为空');return;}
 var msg=(f==='t')?'已复制标题':((f==='d')?'已复制简介':'已复制标签');
 function fb(){var ta=document.createElement('textarea');ta.value=txt;ta.style.cssText='position:absolute;left:-9999px;top:0';document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand('copy');}catch(e){}document.body.removeChild(ta);toast(ok?msg:'复制失败 · 可手动选中复制');}
 try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){toast(msg);},fb);}else fb();}catch(e){fb();}}
+function cpRaw(txt){function fb(){var ta=document.createElement('textarea');ta.value=txt;ta.style.cssText='position:absolute;left:-9999px;top:0';document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand('copy');}catch(e){}document.body.removeChild(ta);toast(ok?'路径已复制':'复制失败 · 可手动选中');}
+try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){toast('路径已复制');},fb);}else fb();}catch(e){fb();}}
+function reveal(pi){if(SENT)return;var p=DATA.platforms[pi];var sel=S.cvp[pi];var files=(sel&&sel.length)?sel:(p.cover||[]);var n=files[0];
+var path=n?((DATA.coverDir||'')+n):(DATA.coverDir||'');if(!path)return;
+if(typeof sendPrompt==='function'){sendPrompt('【封标·定位封面】'+path);toast('已在 Finder 中打开');}else{cpRaw(path);}}
 var CV={pi:0,files:[],urls:[],sel:{}};
 var cvOvl=ROOT.querySelector('.ljCvOvl'),cvG=ROOT.querySelector('.ljCvG'),cvP=ROOT.querySelector('.ljCvP');
 cvP.textContent=DATA.coverDir||'';
@@ -175,7 +179,7 @@ ROOT.addEventListener('wheel',function(e){if(e.target.closest('.ljBd')||e.target
 if(window.__ljKH)document.removeEventListener('keydown',window.__ljKH);
 window.__ljKH=function(e){if((e.ctrlKey||e.metaKey)&&String(e.key).toLowerCase()==='z'){var ae=document.activeElement;if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.getAttribute('contenteditable')==='true'))return;e.preventDefault();undo();}};
 document.addEventListener('keydown',window.__ljKH);
-window.LJ={sw:sw,psel:psel,pek:pek,gsw:gsw,gpsel:gpsel,gpek:gpek,ed:ed,cpy:cpy ,cvPick:cvPick,cvSel:cvSel,cvOk:cvOk,cvCancel:cvCancel,undo:undo,confirm:confirmAll,submit:submit,closeM:closeM,up:up,skip:skipAll};
+window.LJ={reveal:reveal,sw:sw,psel:psel,pek:pek,gsw:gsw,gpsel:gpsel,gpek:gpek,ed:ed,cpy:cpy ,cvPick:cvPick,cvSel:cvSel,cvOk:cvOk,cvCancel:cvCancel,undo:undo,confirm:confirmAll,submit:submit,closeM:closeM,up:up,skip:skipAll};
 })();
 
 /* 成形标记：load 后两帧置 ljReady —— 渲染中不挂滚动条 */
