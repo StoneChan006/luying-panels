@@ -741,7 +741,7 @@ ovl.classList.add('on');}
 function closeM(){ovl.classList.remove('on');}
 function toast(t){tst.textContent=t;tst.classList.add('on');clearTimeout(tst._h);tst._h=setTimeout(function(){tst.classList.remove('on');},2200);}
 function skip(){if(SENT)return;SENT=true;if(typeof sendPrompt==='function')ljSay('【故事设定·跳过】AI 按优选完成全部选择，直接推进至剧本定稿端产出（随后渲染剧本面板）');}
-function up(){if(SENT)return;var vals=collect();SENT=true;if(typeof sendPrompt==='function')ljSay('【故事设定·上一级】回项目设计（B2）｜按下列当前选中值重渲 B2（保持已选 · 不重置）\n'+vals.join('\n'));}
+function up(){if(SENT)return;var vals=collect();SENT=true;try{ovl.classList.remove('on');}catch(e){}sendChunks('【故事设定·上一级】',['指令=回项目设计（B2）｜按下列当前选中值重渲 B2（保持已选 · 不重置）'].concat(vals));}
 renderAll();updMain();
 ROOT.addEventListener('click',function(e){if(e.target&&e.target.isConnected===false)return;   /* 弹层刚被重建 · 被点元素已脱离文档 */
 if(pop.classList.contains('on')&&!e.target.closest('.ljPop')&&!e.target.closest('.ljSV'))closePop();});
