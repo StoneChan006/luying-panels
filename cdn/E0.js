@@ -259,6 +259,8 @@ function lookHTML(items){
   else if(f.lane==='media')media.push(f);
   else film.push(f);
  });
+ /* `both:true` ＝ 影视卡与媒体卡都要的槽（时长）：追加在末尾，跟随所属行的排布 */
+ items.forEach(function(f){if(!f.both)return;if(film.indexOf(f)<0)film.push(f);if(media.indexOf(f)<0)media.push(f);});
  var mode=(S.look==='媒体')?'媒体':(S.look||'影视');
  var lane=((mode==='媒体')?media:film).filter(fieldOn);
  var h='<div class="ljBlk"><div class="ljSh"><span class="ljSt">项目基调</span></div>';
@@ -667,7 +669,7 @@ var out=[],_lk=(S.look==='媒体')?'媒体':'影视';
  if(f.type==='grp'){if(f.look)out.push('项目基调='+_lk);return;}
  if(!f.type)return;
  if(!fieldOn(f))return;   /* 条件行未命中＝不出现也不回传 */
- if(f.lane==='film'&&_lk!=='影视')return;
+ if(f.lane==='film'&&!f.both&&_lk!=='影视')return;
  if(f.lane==='media'&&_lk!=='媒体')return;
  var _n=f.rt||f.label;
  if(f.type==='multi'){var _mv=(S.multi[f.k]||[]);var _ms=_mv.length?_mv.join('；'):'未选';
