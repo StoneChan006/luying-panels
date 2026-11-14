@@ -49,9 +49,10 @@ return h+'<button class="ljCp" onclick="LJ.cpy('+pi+',\'g\')" title="复制标�
 function descHTML(pi){var k=pi+'__d';
 return '<div class="ljItem"><div class="ljIH"><span class="ljIN">简介</span></div><div class="ljTxb"><span class="ljEd" contenteditable="true" spellcheck="false" oninput="LJ.ed(\''+k+'\',this.innerText)">'+esc(val(pi,'d'))+'</span><button class="ljCp" onclick="LJ.cpy('+pi+',\'d\')" title="复制简介">'+CP+'</button></div></div>';}
 function coverHTML(pi){var p=DATA.platforms[pi];var sel=S.cvp[pi];
-var h='<div class="ljItem"><div class="ljIH"><span class="ljIN">封面</span><button class="ljFold" onclick="LJ.cvOpen('+pi+')" title="打开封面文件夹 · 点击图片选中">'+FOLD+'打开文件夹</button><input type="file" id="b6cvIn'+pi+'" webkitdirectory directory multiple style="display:none" onchange="LJ.cvPick(this,'+pi+')"></div>';
-var txt=(sel&&sel.length)?('<span class="ljSel">✓ 已选：'+esc(sel.join('　／　'))+'</span>'):((p.cover&&p.cover.length)?p.cover.map(esc).join('　／　'):'（待生成）');
-h+='<div class="ljCvf">'+txt+'</div></div>';return h;}
+var h='<div class="ljItem"><div class="ljIH"><span class="ljIN">封面</span><button class="ljFold" onclick="LJ.cvOpen('+pi+')" title="在 Finder 中打开封面文件夹">'+FOLD+'打开文件夹</button></div>';
+var files=(sel&&sel.length)?sel:((p.cover&&p.cover.length)?p.cover:[]);
+var body=files.length?files.map(function(n,i){return '<span class="ljW" onclick="LJ.reveal('+pi+','+i+')" title="在 Finder 中显示这个文件">'+esc(n)+'</span>';}).join('　／　'):'（待生成）';
+h+='<div class="ljCvf">'+body+'</div></div>';return h;}
 function blockHTML(p,pi){var h='<div class="ljSc"><div class="ljSh"><span class="ljSt">'+esc(p.name)+'</span>';
 if(p.link)h+='<a class="ljA" href="'+escAttr(p.link)+'" target="_blank" rel="noopener" title="新窗口打开发布入口">'+LK+'发布入口</a>';
 if(p.spec)h+='<span class="ljSp">'+esc(p.spec)+'</span>';
@@ -72,7 +73,15 @@ try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.w
 var CV={pi:0,files:[],urls:[],sel:{}};
 var cvOvl=ROOT.querySelector('.ljCvOvl'),cvG=ROOT.querySelector('.ljCvG'),cvP=ROOT.querySelector('.ljCvP');
 cvP.textContent=DATA.coverDir||'';
-function cvOpen(pi){if(SENT)return;CV.pi=pi;var inp=ROOT.querySelector('#b6cvIn'+pi);if(inp)inp.click();}
+function cpRaw(txt){function fb(){var ta=document.createElement('textarea');ta.value=txt;ta.style.cssText='position:absolute;left:-9999px;top:0';document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand('copy');}catch(e){}document.body.removeChild(ta);toast(ok?'路径已复制':'复制失败 · 可手动选中');}
+try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){toast('路径已复制');},fb);}else fb();}catch(e){fb();}}
+function revealPath(path){
+ if(!path)return;
+ if(typeof sendPrompt==='function'){sendPrompt('【封标·定位封面】'+path);toast('已在 Finder 中显示');}
+ else{cpRaw(path);}}
+function revealFolder(pi){if(SENT)return;revealPath(DATA.coverDir||'');}
+function reveal(pi,i){if(SENT)return;var p=DATA.platforms[pi];var sel=S.cvp[pi];var files=(sel&&sel.length)?sel:(p.cover||[]);var n=files[i]||files[0];if(!n)return;revealPath((DATA.coverDir||'')+n);}
+function cvOpen(pi){if(SENT)return;revealFolder(pi);}
 function cvPick(inp,pi){CV.pi=pi;
 var fs2=Array.prototype.slice.call(inp.files||[]).filter(function(f){return /\.(png|jpe?g|webp|gif|bmp)$/i.test(f.name);});
 CV.urls.forEach(function(u){try{URL.revokeObjectURL(u);}catch(e){}});
@@ -175,7 +184,7 @@ ROOT.addEventListener('wheel',function(e){if(e.target.closest('.ljBd')||e.target
 if(window.__ljKH)document.removeEventListener('keydown',window.__ljKH);
 window.__ljKH=function(e){if((e.ctrlKey||e.metaKey)&&String(e.key).toLowerCase()==='z'){var ae=document.activeElement;if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.getAttribute('contenteditable')==='true'))return;e.preventDefault();undo();}};
 document.addEventListener('keydown',window.__ljKH);
-window.LJ={sw:sw,psel:psel,pek:pek,gsw:gsw,gpsel:gpsel,gpek:gpek,ed:ed,cpy:cpy,cvOpen:cvOpen,cvPick:cvPick,cvSel:cvSel,cvOk:cvOk,cvCancel:cvCancel,undo:undo,confirm:confirmAll,submit:submit,closeM:closeM,up:up,skip:skipAll};
+window.LJ={sw:sw,psel:psel,pek:pek,gsw:gsw,gpsel:gpsel,gpek:gpek,ed:ed,cpy:cpy,reveal:reveal,revealFolder:revealFolder,cvOpen:cvOpen,cvPick:cvPick,cvSel:cvSel,cvOk:cvOk,cvCancel:cvCancel,undo:undo,confirm:confirmAll,submit:submit,closeM:closeM,up:up,skip:skipAll};
 })();
 
 /* 成形标记：load 后两帧置 ljReady —— 渲染中不挂滚动条 */
