@@ -164,7 +164,7 @@ S.look={film:cp(DATA.look.film||{}),media:cp(DATA.look.media||{}),style:cp(DATA.
 function slotDef(card,k){var a=SLOT[card]||[];for(var i=0;i<a.length;i++)if(a[i].k===k)return a[i];return null;}
 /* 条件槽：`cond:['form','剧情']` ＝ 该卡的 form 里含 `剧情` 才显示（不显示＝不渲染、不回传、不参与随机） */
 function slotOn(card,def){var c=def&&def.cond;if(!c)return true;return slotArr(card,c[0]).indexOf(c[1])>=0;}
-function slotArr(card,k){var o=S.look[card]||(S.look[card]={});if(!Array.isArray(o[k]))o[k]=[];return o[k];}
+function slotArr(card,k){var o=S.look[card]||(S.look[card]={});if(!Array.isArray(o[k]))o[k]=[];var a=o[k],u=[];a.forEach(function(v){if(u.indexOf(v)<0)u.push(v);});if(u.length!==a.length)o[k]=u;return o[k];}
 function poolGroups(key){return POOL[key]||[];}
 function poolFlat(key){var o=[];poolGroups(key).forEach(function(g){g[1].forEach(function(v){if(o.indexOf(v)<0)o.push(v);});});return o;}
 /* 载体 → 时长 关联推荐项（时长＝无弹层换选，只在这几个里转；未选载体才退回全池） */
@@ -349,12 +349,15 @@ function slotRow(card,k){
   return h+'</span></div>';
 }
 function cardHTML(card,title,sub){
-  var rows=SLOT[card]||[];
+  /* 媒体卡：`时长` 投右栏、排在 `尺寸` 下面（与 E0 系列卡同版式）；影视卡仍在左栏 */
+  var rows=(SLOT[card]||[]).filter(function(d){return !(card==='media'&&d.k==='dur');});
   var h='<div class="ljCard"><div class="ljCdH"><span class="ljCdT">'+esc(title)+'</span>'
     +(sub?'<span class="ljCdS">｜</span><span class="ljCdN">'+esc(sub)+'</span>':'')
     +'</div><div class="ljTwo">';
   h+='<div>';rows.forEach(function(d){if(slotOn(card,d))h+=slotRow(card,d.k);});h+='</div>';
-  h+='<div>';SLOT.style.forEach(function(d){h+=slotRow('style',d.k);});h+='</div>';
+  h+='<div>';SLOT.style.forEach(function(d){h+=slotRow('style',d.k);});
+  if(card==='media'){var dd=slotDef('media','dur');if(dd&&slotOn('media',dd))h+=slotRow('media','dur');}
+  h+='</div>';
   return h+'</div></div>';
 }
 function seriesCard(){
