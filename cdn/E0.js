@@ -662,7 +662,7 @@ function roleNames(){
 function editSeries(i){if(S.sent)return;var s=DATA.series[i];pushUndo();S.sel=i;S.mode='edit';S.view='project';
 var p=s.preset||{};
 S.text=cp(p.text||{});S.text.pname=S.text.pname||s.name;
-S.multi=cp(p.multi||{});S.single=cp(p.single||{});S.cst=cp(p.cst||{});S.look=p.look||(DATA.project&&DATA.project.look)||'影视';migratePreset();applyDefaults();
+S.multi=cp(p.multi||{});S.single=cp(p.single||{});S.cst=cp(p.cst||{});S.look=p.look||(DATA.project&&DATA.project.look)||'影视';migratePreset();applyDefaults();fixDur();
 S.roles=[];S.pr.mode='';S.pr.count=1;S.pr.edit=true;S.pr.edits={};S.pr.meta={};S.pr.removed={};roleNames().forEach(function(nm){S.pr.edits[nm]={regen:false};});
 renderAll();toast('修改档案 · 已按 ID 配置预选');}
 function newSeries(){S.mode='new';if(S.sent)return;pushUndo();S.view='project';S.look=(DATA.project&&DATA.project.look)||'影视';renderAll();}
@@ -671,6 +671,7 @@ if(typeof sendPrompt!=='function'&&typeof ljSay!=='function'){toast('预览模�
 S.sent=true;ljSay('【B0·返回选择页】\n重渲 B0 选择页 · 项目系列（保留已扫描的系列列表）');}
 function buildLines(fields){
 var out=[],_lk=(S.look==='媒体')?'媒体':'影视';
+var _car=(_lk==='媒体')?(S.single.filmtype||''):(S.single.fcarrier||''); /* 时长前缀＝当前口径的载体，两个口径不混记 */
 (fields||[]).forEach(function(f){
  if(f.type==='grp'){if(f.look)out.push('项目基调='+_lk);return;}
  if(!f.type)return;
@@ -679,15 +680,15 @@ var out=[],_lk=(S.look==='媒体')?'媒体':'影视';
  if(f.lane==='media'&&_lk!=='媒体')return;
  var _n=f.rt||f.label;
  if(f.type==='multi'){var _mv=(S.multi[f.k]||[]);var _ms=_mv.length?_mv.join('；'):'未选';
-  if(f.k==='dur'&&_mv.length){var _pf=S.single.fcarrier?S.single.fcarrier+' ':'';_ms=_pf+_mv.join('；');}
+  if(f.k==='dur'&&_mv.length){var _pf=_car?_car+' ':'';_ms=_pf+_mv.join('；');}
   out.push(_n+'='+_ms);if(S.cst[f.k])out.push('自定义'+_n+'='+S.cst[f.k]);}
  else if(f.type==='tags'){var _tg=(S.multi[f.k]||[]);var _ts=_tg.length?_tg.join('；'):'未选';
-  if(f.k==='dur'&&_tg.length){var _dp=S.single.fcarrier?S.single.fcarrier+' ':'';_ts=_dp+_tg.join('；');}
+  if(f.k==='dur'&&_tg.length){var _dp=_car?_car+' ':'';_ts=_dp+_tg.join('；');}
   out.push(_n+'='+_ts);}
  else if(f.type==='dualtags'){var _fx=(S.multi[f.k+'x']||[]);var _dv=(S.single[f.k]||'未选');
   out.push(_n+'='+_dv+' × '+(_fx.length?_fx.join(' + '):'未选'));}
  else if(f.type==='single'){var _sv=S.single[f.k]||'';if(!_sv&&f.opt)return;
-  if(f.k==='dur'&&_sv){var _dp=S.single.fcarrier?S.single.fcarrier+' ':'';_sv=_dp+_sv;}
+  if(f.k==='dur'&&_sv){var _dp=_car?_car+' ':'';_sv=_dp+_sv;}
   out.push(_n+'='+(_sv||'未选'));if(S.cst[f.k])out.push('自定义'+_n+'='+S.cst[f.k]);}
  else if(f.type==='text'){var _tv=String(S.text[f.k]||'').replace(/\r?\n+/g,' ／ ');out.push(_n+'='+(_tv||'（未填）'));}
 else if(f.type==='roles'){
